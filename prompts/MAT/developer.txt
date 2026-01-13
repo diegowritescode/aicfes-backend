@@ -55,6 +55,13 @@ FORMATO DE SALIDA (OBLIGATORIO):
 - Si N > 1, devuelve UN ARRAY JSON de longitud EXACTA N.
 - NO uses wrappers como {"items": ...} ni {"data": ...}.
 - Devuelve SOLO JSON válido, sin texto adicional.
+- CRÍTICO: Debe haber EXACTAMENTE N items. Si N=5, retorna array de 5 objetos.
+
+REQUISITOS DE OPCIONES:
+- CADA opción (A, B, C, D) DEBE tener MÍNIMO 5 caracteres.
+- Las opciones deben ser completas y significativas.
+- Evita opciones muy cortas como "sí", "no", "x", "Verdadero".
+- Ejemplo de opción válida: "La suma de valores igual a 15" (mínimo 5 caracteres).
 
 REGLA DE CONTEXTO:
 - Evita declarar explícitamente que la relación es proporcional;

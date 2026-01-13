@@ -21,10 +21,29 @@ export class ItemGeneratorService {
     private config: ConfigService
   ) {}
 
-  private correctiveMessage = `Tu salida anterior no cumplió el esquema requerido. 
-Devuelve SOLO JSON válido exactamente con el esquema solicitado. 
-No incluyas texto adicional ni markdown.
-JSON debe ser: si n=1 un objeto, si n>1 un array de objetos.`;
+  private getCorrectiveMessageForValidation(errors: string[]): string {
+    // Si los errores son sobre tipos de distractores, dar mensaje específico
+    if (errors[0] && errors[0].includes('tipo') && errors[0].includes('no permitido')) {
+      return `ERROR: Tipos de distractores incorrectos. 
+Los tipos deben coincidir EXACTAMENTE con los permitidos para el área.
+Revisa el mensaje de error anterior y usa SOLO los tipos listados como "Permitidos".
+Cada opción (A, B, C, D) debe tener UN SOLO tipo de distractor.`;
+    }
+    
+    // Si son errores de opciones muy cortas
+    if (errors[0] && errors[0].includes('muy corta')) {
+      return `ERROR: Opciones MUY CORTAS.
+CADA opción (A, B, C, D) DEBE tener MÍNIMO 5 caracteres significativos.
+Las opciones deben ser frases o valores completos, no palabras sueltas.
+Ejemplo correcto: "El valor de x es 15" (más de 5 caracteres).`;
+    }
+
+    // Mensaje genérico de validación
+    return `Tu salida anterior no pasó validación.
+Devuelve JSON VÁLIDO con EXACTAMENTE el esquema requerido.
+Revisa los tipos de distractores y las longitudes de opciones.
+Si n=1 devuelve objeto, si n>1 devuelve array de n objetos.`;
+  }
 
   /**
    * Genera ítems ICFES y retorna salida normalizada
@@ -88,7 +107,10 @@ JSON debe ser: si n=1 un objeto, si n>1 un array de objetos.`;
             };
           }
           // Reintento
-          messages.push({ role: 'user', content: this.correctiveMessage });
+          const msg = `Tu salida anterior no es JSON válido.
+Devuelve SOLO JSON válido sin texto adicional.
+${normErr.message}`;
+          messages.push({ role: 'user', content: msg });
           continue;
         }
 
@@ -151,15 +173,30 @@ JSON debe ser: si n=1 un objeto, si n>1 un array de objetos.`;
               parseError: lastParseError,
             };
           }
-          messages.push({ role: 'user', content: this.correctiveMessage });
+          const msg = this.getCorrectiveMessageForValidation(validationErrors);
+          messages.push({ role: 'user', content: msg });
           continue;
         }
 
-        // 4. Verificar que tenemos exactamente n ítems (o al menos algunos)
+        // 4. Verificar que tenemos exactamente n ítems
         if (validatedItems.length !== n) {
-          console.warn(
-            `[${requestId}] Expected ${n} items but got ${validatedItems.length}, continuing anyway`
-          );
+          lastParseError = `Expected ${n} items but got ${validatedItems.length}`;
+          console.warn(`[${requestId}] ${lastParseError}`);
+          if (attempt >= maxRetries) {
+            // Después de reintentos, si aún no tenemos la cantidad exacta, retornar error
+            return {
+              items: [],
+              rawModelOutput: respText,
+              parseStatus: 'FAIL',
+              parseError: lastParseError,
+            };
+          }
+          // Reintento con mensaje correctivo
+          const correctiveMsg = `Tu salida anterior generó SOLO ${validatedItems.length} ítems pero se solicitaron ${n}.
+Devuelve EXACTAMENTE ${n} ítems JSON válidos en un array.
+Si N=${n}, retorna array de exactamente ${n} objetos.`;
+          messages.push({ role: 'user', content: correctiveMsg });
+          continue;
         }
 
         console.log(`[${requestId}] Successfully validated ${validatedItems.length} items`);
@@ -182,7 +219,8 @@ JSON debe ser: si n=1 un objeto, si n>1 un array de objetos.`;
         }
 
         // Agregar mensaje correctivo y reintentar
-        messages.push({ role: 'user', content: this.correctiveMessage });
+        const msg = this.getCorrectiveMessageForValidation([lastParseError]);
+        messages.push({ role: 'user', content: msg });
       }
     }
 

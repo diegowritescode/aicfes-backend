@@ -65,6 +65,12 @@ E) Justificación:
      con el contexto y los principios ciudadanos implicados.
    - NO compares explícitamente con las opciones incorrectas.
 
+REQUISITOS DE OPCIONES:
+- CADA opción (A, B, C, D) DEBE tener MÍNIMO 5 caracteres.
+- Las opciones deben ser completas y significativas.
+- Evita opciones muy cortas como "sí", "no", "x", "Verdadero".
+- Todas las opciones deben tener longitud similar y coherente.
+
 F) Dificultad:
    - facil: aplicación directa de un principio claro.
    - media: integración de varios elementos del contexto.

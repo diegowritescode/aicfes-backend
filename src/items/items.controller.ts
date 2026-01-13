@@ -57,8 +57,8 @@ export class ItemsController {
         },
         n: {
           type: 'number',
-          description: 'Cantidad de ítems a generar (máx 5)',
-          example: 1,
+          description: 'Cantidad de ítems a generar (máx 100, default 1)',
+          example: 5,
         },
         tema: {
           type: 'string',
@@ -146,7 +146,7 @@ export class ItemsController {
       };
     }
 
-    const maxItems = Number(this.config.get('MAX_ITEMS') || 5);
+    const maxItems = Number(this.config.get('MAX_ITEMS') || 100);
     let n = parsed.data.n === undefined ? 1 : parsed.data.n;
     if (n > maxItems) n = maxItems;
 

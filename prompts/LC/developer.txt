@@ -43,12 +43,23 @@ C) Opciones:
 D) Tipado de distractores:
    - La opción correcta DEBE llevar tipo_error = "correcta".
    - Usa SOLO estos tipos para opciones incorrectas:
-     "interpretacion_parcial",
-     "inferencia_falsa",
-     "confusion_tono",
-     "extrapolacion_indebida",
-     "fuera_texto".
-   - El tipo asignado debe corresponder exactamente al error real.
+     "interpretacion_parcial" → olvida o interpreta mal una parte del texto
+     "inferencia_falsa" → concluye algo que el texto NO sostiene
+     "confusion_tono" → confunde el tono, registro o intención del autor
+     "extrapolacion_indebida" → extiende conclusión más allá de lo textual
+     "fuera_texto" → es cierto en general pero no aplica al texto.
+   - Para cada ítem, usa 3 tipos distintos.
+
+REQUISITOS DE OPCIONES:
+- CADA opción (A, B, C, D) DEBE tener MÍNIMO 5 caracteres.
+- Las opciones deben ser completas y significativas (frases o ideas completas).
+- Evita opciones muy cortas como "sí", "no", "x", "Verdadero".
+- Todas las opciones deben tener longitud similar y coherente.
+
+FORMATO DE SALIDA (OBLIGATORIO):
+- Si N == 1, devuelve UN SOLO OBJETO JSON.
+- Si N > 1, devuelve UN ARRAY JSON de longitud EXACTA N.
+- CRÍTICO: Debe haber EXACTAMENTE N items solicitados.
 
 E) Justificación:
    - Explica brevemente por qué la opción correcta se sustenta en el texto

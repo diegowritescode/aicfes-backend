@@ -49,6 +49,12 @@ E) Justificación:
      en la evidencia del contexto (1–3 ideas claras).
    - NO compares explícitamente con las opciones incorrectas.
 
+REQUISITOS DE OPCIONES:
+- CADA opción (A, B, C, D) DEBE tener MÍNIMO 5 caracteres.
+- Las opciones deben ser completas y significativas.
+- Evita opciones muy cortas como "sí", "no", "x", "Verdadero".
+- Todas las opciones deben tener longitud similar y coherente.
+
 F) Dificultad:
    - facil: relación directa observable en los datos.
    - media: integración de dos variables o evidencia simple.

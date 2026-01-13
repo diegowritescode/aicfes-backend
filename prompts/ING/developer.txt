@@ -43,14 +43,18 @@ D) Tipado de distractores:
      "interpretacion_parcial",
      "fuera_contexto".
    - El tipo asignado debe corresponder exactamente
-     al error comunicativo real de la opción.
+     al error comunicativo real de la opcion.
 
 E) Justificación:
    - Explica brevemente por qué la opción correcta
      cumple la intención comunicativa del contexto.
    - NO compares explícitamente con las otras opciones.
    - NO evalúes ni “corrijas” cada distractor.
-
+REQUISITOS DE OPCIONES:
+- CADA opción (A, B, C, D) DEBE tener MÍNIMO 5 caracteres.
+- Las opciones deben ser completas y significativas.
+- Evita opciones muy cortas como "yes", "no", "x", "True".
+- Todas las opciones deben tener longitud similar y coherente.
 F) Dificultad:
    - facil: selección directa con contexto claro.
    - media: interpretación de intención, tono o registro adecuado.
