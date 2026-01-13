@@ -1,0 +1,55 @@
+Genera exactamente {{N}} ítem(s) tipo ICFES Saber 11.
+
+PARÁMETROS:
+- Área: {{AREA}}
+- Dificultad: {{DIFICULTAD}}
+- Tema: {{TEMA}}
+- Plantilla sugerida: {{PLANTILLA}}
+
+INSTRUCCIONES DE SALIDA:
+- Devuelve SOLO JSON válido, sin texto adicional.
+- Si {{N}} == 1, devuelve UN OBJETO JSON.
+- Si {{N}} > 1, devuelve UN ARRAY JSON de longitud EXACTA {{N}}.
+- NO uses wrappers como {"items": ...} ni {"data": ...}.
+
+ESQUEMA DE SALIDA OBLIGATORIO:
+{
+  "area": "{{AREA}}",
+  "dificultad": "{{DIFICULTAD}}",
+  "plantilla": "string",
+  "contexto": "string",
+  "pregunta": "string",
+  "opciones": {
+    "A": "string",
+    "B": "string",
+    "C": "string",
+    "D": "string"
+  },
+  "respuesta_correcta": "A|B|C|D",
+  "justificacion": "string",
+  "tags": ["string", "string"],
+  "distractores": {
+    "A": "tipo_error",
+    "B": "tipo_error",
+    "C": "tipo_error",
+    "D": "tipo_error"
+  }
+}
+
+REGLAS CN ({{DIFICULTAD}}):
+- El contexto debe describir un fenómeno o experimento con variables explícitas.
+- Incluye una mini-representación descrita (tabla/lista/gráfico descrito) cuando sea útil.
+- La pregunta debe depender de interpretar datos o relaciones causa–efecto.
+- Todas las opciones deben ser científicamente plausibles.
+- En "distractores", marca la opción correcta como "correcta".
+- Para opciones incorrectas usa SOLO:
+  "confusion_conceptual",
+  "inferencia_causal_falsa",
+  "ignora_variable",
+  "interpretacion_parcial_datos".
+
+REGLA DE TEMA:
+- Si el Tema es específico, el fenómeno y la pregunta deben depender de él.
+- Si el Tema es “cualquiera relacionado”, elige un tema típico Saber 11
+  (ecosistemas, cambios de estado, energía, mezclas, densidad, procesos biológicos)
+  y refléjalo en los tags.

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Ítems ICFES Saber 11</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-dark bg-gradient">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="fas fa-book-open"></i> Generador ICFES Saber 11
+            </span>
+            <span class="badge bg-success" id="statusBadge">Listo</span>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container-fluid py-4">
+        <div class="row">
+            <!-- Formulario -->
+            <div class="col-lg-4 mb-4">
+                <div class="card shadow-sm border-0 sticky-top" style="top: 20px;">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-sliders-h"></i> Configuración</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="generatorForm">
+                            <!-- Área -->
+                            <div class="mb-3">
+                                <label for="area" class="form-label fw-bold">Área de Conocimiento</label>
+                                <select class="form-select" id="area" required>
+                                    <option value="">-- Seleccionar --</option>
+                                    <option value="MAT">Matemáticas (MAT)</option>
+                                    <option value="LC">Lectura Crítica (LC)</option>
+                                    <option value="CN">Ciencias Naturales (CN)</option>
+                                    <option value="SOC">Ciencias Sociales (SOC)</option>
+                                    <option value="ING">Inglés (ING)</option>
+                                </select>
+                            </div>
+
+                            <!-- Dificultad -->
+                            <div class="mb-3">
+                                <label for="dificultad" class="form-label fw-bold">Dificultad</label>
+                                <select class="form-select" id="dificultad" required>
+                                    <option value="">-- Seleccionar --</option>
+                                    <option value="facil">Fácil</option>
+                                    <option value="media">Media</option>
+                                    <option value="alta">Alta</option>
+                                </select>
+                            </div>
+
+                            <!-- Tema -->
+                            <div class="mb-3">
+                                <label for="tema" class="form-label fw-bold">Tema (Opcional)</label>
+                                <input type="text" class="form-control" id="tema" placeholder="ej: porcentajes, células, democracia">
+                            </div>
+
+                            <!-- Plantilla -->
+                            <div class="mb-3">
+                                <label for="plantilla" class="form-label fw-bold">Plantilla (Opcional)</label>
+                                <input type="text" class="form-control" id="plantilla" placeholder="Describir plantilla específica">
+                            </div>
+
+                            <!-- Cantidad -->
+                            <div class="mb-3">
+                                <label for="cantidad" class="form-label fw-bold">Cantidad de ítems</label>
+                                <input type="number" class="form-control" id="cantidad" value="1" min="1" max="5">
+                                <small class="text-muted">Máximo 5 ítems</small>
+                            </div>
+
+                            <!-- Botón Generar -->
+                            <button type="submit" class="btn btn-primary w-100 mb-2" id="generateBtn">
+                                <i class="fas fa-magic"></i> Generar Ítems
+                            </button>
+
+                            <!-- Botón Limpiar -->
+                            <button type="reset" class="btn btn-outline-secondary w-100">
+                                <i class="fas fa-redo"></i> Limpiar Formulario
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resultados -->
+            <div class="col-lg-8">
+                <!-- Loader -->
+                <div id="loader" class="d-none text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Generando...</span>
+                    </div>
+                    <p class="mt-3 text-muted">Generando ítems con IA...</p>
+                </div>
+
+                <!-- Error Alert -->
+                <div id="errorAlert" class="alert alert-danger alert-dismissible fade d-none" role="alert">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <strong id="errorTitle">Error</strong>
+                    <p id="errorMessage" class="mb-0"></p>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <!-- Items Container -->
+                <div id="itemsContainer"></div>
+
+                <!-- JSON Display Section -->
+                <div id="jsonSection" class="d-none mt-4">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-dark text-white">
+                            <h5 class="mb-0"><i class="fas fa-code"></i> JSON Raw</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="position-relative">
+                                <pre id="jsonOutput" class="bg-light p-3 rounded" style="max-height: 400px; overflow-y: auto;"><code id="jsonCode"></code></pre>
+                                <button class="btn btn-sm btn-primary position-absolute top-0 end-0 m-2" id="copyJsonBtn">
+                                    <i class="fas fa-copy"></i> Copiar JSON
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast para copia -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="copyToast" class="toast" role="alert">
+            <div class="toast-body bg-success text-white">
+                <i class="fas fa-check-circle"></i> ¡JSON copiado al portapapeles!
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

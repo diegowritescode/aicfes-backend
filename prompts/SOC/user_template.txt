@@ -1,0 +1,56 @@
+Genera exactamente {{N}} ítem(s) tipo ICFES Saber 11.
+
+PARÁMETROS:
+- Área: {{AREA}}
+- Dificultad: {{DIFICULTAD}}
+- Tema: {{TEMA}}
+- Plantilla sugerida: {{PLANTILLA}}
+
+INSTRUCCIONES DE SALIDA:
+- Devuelve SOLO JSON válido, sin texto adicional.
+- Si {{N}} == 1, devuelve UN OBJETO JSON.
+- Si {{N}} > 1, devuelve UN ARRAY JSON de longitud EXACTA {{N}}.
+- NO uses wrappers como {"items": ...} ni {"data": ...}.
+
+ESQUEMA DE SALIDA OBLIGATORIO:
+{
+  "area": "{{AREA}}",
+  "dificultad": "{{DIFICULTAD}}",
+  "plantilla": "string",
+  "contexto": "string",
+  "pregunta": "string",
+  "opciones": {
+    "A": "string",
+    "B": "string",
+    "C": "string",
+    "D": "string"
+  },
+  "respuesta_correcta": "A|B|C|D",
+  "justificacion": "string",
+  "tags": ["string", "string"],
+  "distractores": {
+    "A": "tipo_error",
+    "B": "tipo_error",
+    "C": "tipo_error",
+    "D": "tipo_error"
+  }
+}
+
+REGLAS SOC ({{DIFICULTAD}}):
+- El contexto debe describir una situación social o institucional concreta.
+- La pregunta debe evaluar coherencia con principios ciudadanos
+  o consecuencias de decisiones.
+- Todas las opciones deben ser plausibles.
+- En "distractores", marca la opción correcta como "correcta".
+- Para opciones incorrectas usa SOLO:
+  "confusion_derechos_deberes",
+  "marco_normativo_incorrecto",
+  "generalizacion_indebida",
+  "inferencia_falsa",
+  "exageracion".
+
+REGLA DE TEMA:
+- Si el Tema es específico, el contexto y la pregunta deben depender de él.
+- Si el Tema es “cualquiera relacionado”, elige un contexto típico Saber 11
+  (participación ciudadana, derechos, instituciones, conflictos sociales)
+  y refléjalo en los tags.

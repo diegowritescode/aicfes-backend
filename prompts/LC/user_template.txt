@@ -1,0 +1,55 @@
+Genera exactamente {{N}} ítem(s) tipo ICFES Saber 11.
+
+PARÁMETROS:
+- Área: {{AREA}}
+- Dificultad: {{DIFICULTAD}}
+- Tema: {{TEMA}}
+- Plantilla sugerida: {{PLANTILLA}}
+
+INSTRUCCIONES DE SALIDA:
+- Devuelve SOLO JSON válido, sin texto adicional.
+- Si {{N}} == 1, devuelve UN OBJETO JSON.
+- Si {{N}} > 1, devuelve UN ARRAY JSON de longitud EXACTA {{N}}.
+- NO uses wrappers como {"items": ...} ni {"data": ...}.
+
+ESQUEMA DE SALIDA OBLIGATORIO:
+{
+  "area": "{{AREA}}",
+  "dificultad": "{{DIFICULTAD}}",
+  "plantilla": "string",
+  "contexto": "string",
+  "pregunta": "string",
+  "opciones": {
+    "A": "string",
+    "B": "string",
+    "C": "string",
+    "D": "string"
+  },
+  "respuesta_correcta": "A|B|C|D",
+  "justificacion": "string",
+  "tags": ["string", "string"],
+  "distractores": {
+    "A": "tipo_error",
+    "B": "tipo_error",
+    "C": "tipo_error",
+    "D": "tipo_error"
+  }
+}
+
+REGLAS LC ({{DIFICULTAD}}):
+- El contexto debe incluir un texto base autosuficiente en español.
+- La pregunta debe requerir inferencia o integración (no literalidad).
+- Todas las opciones deben ser plausibles a partir del texto.
+- En "distractores", marca la opción correcta como "correcta".
+- Para opciones incorrectas usa SOLO:
+  "interpretacion_parcial",
+  "inferencia_falsa",
+  "confusion_tono",
+  "extrapolacion_indebida",
+  "fuera_texto".
+
+REGLA DE TEMA:
+- Si el Tema es específico, el texto y la pregunta deben depender de él.
+- Si el Tema es “cualquiera relacionado”, elige un texto típico Saber 11
+  (argumentativo, divulgativo breve, narrativo reflexivo)
+  y refléjalo en los tags.

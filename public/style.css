@@ -1,0 +1,360 @@
+/* Variables de color */
+:root {
+    --primary-color: #0d6efd;
+    --success-color: #198754;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #0dcaf0;
+    --light-color: #f8f9fa;
+    --dark-color: #212529;
+}
+
+/* Body */
+body {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    min-height: 100vh;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Navbar */
+.navbar {
+    background: linear-gradient(90deg, #0d6efd 0%, #0dcaf0 100%) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 30px;
+}
+
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.4rem;
+    letter-spacing: 0.5px;
+}
+
+.bg-gradient {
+    background: linear-gradient(90deg, #0d6efd 0%, #0dcaf0 100%);
+}
+
+/* Card Styles */
+.card {
+    transition: all 0.3s ease;
+    border-radius: 12px;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15) !important;
+}
+
+.card-header {
+    border-radius: 12px 12px 0 0;
+    padding: 1.25rem;
+    font-weight: 600;
+    border-bottom: 0;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* Item Card Styles */
+.item-card {
+    border-left: 5px solid var(--primary-color);
+    margin-bottom: 20px;
+}
+
+.item-card.facil {
+    border-left-color: var(--success-color);
+}
+
+.item-card.media {
+    border-left-color: var(--warning-color);
+}
+
+.item-card.alta {
+    border-left-color: var(--danger-color);
+}
+
+/* Badge de dificultad */
+.badge-dificultad {
+    padding: 0.5rem 0.75rem;
+    font-weight: 600;
+    border-radius: 20px;
+}
+
+.badge-facil {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.badge-media {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.badge-alta {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* Sección de opciones */
+.opciones-section {
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.opcion {
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.opcion:hover {
+    border-color: var(--primary-color);
+    background-color: #f0f6ff;
+}
+
+.opcion-letra {
+    font-weight: 700;
+    color: var(--primary-color);
+    min-width: 30px;
+    display: inline-block;
+}
+
+.opcion-correcta {
+    border-left: 4px solid var(--success-color);
+    background-color: #f0fff4;
+}
+
+.opcion-correcta .opcion-letra {
+    color: var(--success-color);
+}
+
+/* Etiquetas y tags */
+.tag {
+    display: inline-block;
+    background-color: #e7f3ff;
+    color: var(--primary-color);
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.tag:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* JSON Section */
+#jsonOutput {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    overflow-x: auto;
+}
+
+#jsonCode {
+    color: #000;
+}
+
+/* Botones */
+.btn {
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: 0;
+}
+
+.btn-primary {
+    background: linear-gradient(90deg, #0d6efd 0%, #0dcaf0 100%);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(90deg, #0b5ed7 0%, #0aaad5 100%);
+    transform: translateY(-2px);
+}
+
+.btn-outline-secondary {
+    border: 2px solid #6c757d;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+/* Form Controls */
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* Spinner */
+.spinner-border {
+    width: 50px;
+    height: 50px;
+}
+
+/* Alert */
+.alert {
+    border-radius: 10px;
+    border: 0;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* Loader */
+#loader {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Toast */
+.toast {
+    border-radius: 8px;
+    border: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Status Badge */
+#statusBadge {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+/* Contexto y Pregunta */
+.contexto-box {
+    background-color: #e7f3ff;
+    border-left: 4px solid var(--primary-color);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.pregunta-box {
+    background-color: #fff3cd;
+    border-left: 4px solid var(--warning-color);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    font-size: 1.05rem;
+}
+
+.justificacion-box {
+    background-color: #d4edda;
+    border-left: 4px solid var(--success-color);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+}
+
+/* Sticky Form */
+@media (max-width: 991px) {
+    .sticky-top {
+        position: static !important;
+        margin-bottom: 20px;
+    }
+}
+
+/* Animación de carga */
+.fade.d-none {
+    display: none !important;
+}
+
+/* Sección de área específica */
+.area-badge {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border-radius: 25px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.area-mat {
+    background-color: #e3f2fd;
+    color: #1565c0;
+}
+
+.area-lc {
+    background-color: #f3e5f5;
+    color: #6a1b9a;
+}
+
+.area-cn {
+    background-color: #e0f2f1;
+    color: #00695c;
+}
+
+.area-soc {
+    background-color: #fff3e0;
+    color: #e65100;
+}
+
+.area-ing {
+    background-color: #fce4ec;
+    color: #c2185b;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding: 1rem;
+    }
+
+    .card-header {
+        padding: 1rem;
+    }
+
+    .card-body {
+        padding: 1rem;
+    }
+
+    #jsonOutput {
+        font-size: 0.8rem;
+        max-height: 300px !important;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .navbar, #generatorForm, #copyJsonBtn {
+        display: none !important;
+    }
+
+    .card {
+        page-break-inside: avoid;
+    }
+}

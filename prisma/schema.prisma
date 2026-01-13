@@ -1,0 +1,88 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enum for areas
+enum Area {
+  MAT
+  LC
+  CN
+  SOC
+  ING
+}
+
+// Enum for difficulty
+enum Dificultad {
+  facil
+  media
+  alta
+}
+
+// Enum for generation request status
+enum GenerationStatus {
+  PENDING
+  SUCCESS
+  ERROR
+}
+
+// Enum for parse status (debugging)
+enum ParseStatus {
+  OK
+  FAIL
+}
+
+// Generation request metadata
+model GenerationRequest {
+  id                    String   @id @default(cuid())
+  requestId             String   @unique
+  area                  Area
+  dificultad            Dificultad
+  tema                  String?
+  plantilla             String?
+  n                     Int      @default(1)
+  status                GenerationStatus @default(PENDING)
+  error                 String?
+  rawModelOutput        String?  @db.Text         // Raw output from OpenAI (for debugging)
+  parseStatus           ParseStatus?               // OK | FAIL
+  parseError            String?                    // Parse error details
+  normalizedItemsCount  Int      @default(0)       // Number of items parsed successfully
+  items                 GeneratedItem[]
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([requestId])
+  @@index([status])
+  @@index([parseStatus])
+  @@index([createdAt])
+}
+
+// Generated item (each question/item from AI)
+model GeneratedItem {
+  id                 String   @id @default(cuid())
+  generationRequest  GenerationRequest @relation(fields: [requestId], references: [requestId], onDelete: Cascade)
+  requestId          String
+  area               Area
+  dificultad         Dificultad
+  plantilla          String
+  contexto           String   @db.Text
+  pregunta           String   @db.Text
+  opciones           Json     // {A: string, B: string, C: string, D: string}
+  respuesta_correcta String
+  justificacion      String   @db.Text
+  tags               Json     // array of strings
+  distractores       Json     // {A: string, B: string, C: string, D: string} with error types
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([requestId])
+  @@index([area])
+  @@index([createdAt])
+}

@@ -1,0 +1,56 @@
+Genera exactamente {{N}} ítem(s) tipo ICFES Saber 11.
+
+PARÁMETROS:
+- Área: {{AREA}}
+- Dificultad: {{DIFICULTAD}}
+- Tema: {{TEMA}}
+- Plantilla sugerida: {{PLANTILLA}}
+
+INSTRUCCIONES DE SALIDA:
+- Devuelve SOLO JSON válido, sin texto adicional.
+- Si {{N}} == 1, devuelve UN OBJETO JSON.
+- Si {{N}} > 1, devuelve UN ARRAY JSON de longitud EXACTA {{N}}.
+- NO uses wrappers como {"items": ...} ni {"data": ...}.
+
+ESQUEMA DE SALIDA OBLIGATORIO:
+{
+  "area": "{{AREA}}",
+  "dificultad": "{{DIFICULTAD}}",
+  "plantilla": "string",
+  "contexto": "string",
+  "pregunta": "string",
+  "opciones": {
+    "A": "string",
+    "B": "string",
+    "C": "string",
+    "D": "string"
+  },
+  "respuesta_correcta": "A|B|C|D",
+  "justificacion": "string",
+  "tags": ["string", "string"],
+  "distractores": {
+    "A": "tipo_error",
+    "B": "tipo_error",
+    "C": "tipo_error",
+    "D": "tipo_error"
+  }
+}
+
+REGLAS MAT ({{DIFICULTAD}}):
+- Contexto breve o medio, cotidiano, con datos claros.
+- Incluye una mini-representación descrita
+  (tabla simple, lista de datos o gráfico descrito),
+  SIN fórmulas ni pasos de cálculo.
+- La pregunta debe exigir interpretar o modelar y validar una condición.
+- Distractores obligatorios:
+  * 1 por "error_calculo"
+  * 1 por "interpretacion_parcial"
+  * 1 por "confunde_conceptos" (unidad/proporción/relación)
+  * Al menos 2 distractores numéricamente cercanos a la correcta (cuando aplique)
+- En el objeto "distractores", marca la opción correcta como "correcta".
+
+REGLA DE TEMA:
+- Si el Tema es específico, debe reflejarse realmente en el contexto y la pregunta.
+- Si el Tema es “cualquiera relacionado”, elige un tema típico Saber 11
+  (proporcionalidad, porcentajes, tasas, lectura de tablas, geometría aplicada)
+  y refléjalo en los tags.
