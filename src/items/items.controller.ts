@@ -23,6 +23,20 @@ import { nanoid } from 'nanoid';
 @Controller('items')
 @ApiTags('Items')
 export class ItemsController {
+  // Simple in-memory rate limiter: map key -> lastTimestamp(ms)
+  // Key format: `${ip}:${endpoint}`
+  private static rateLimitMap: Map<string, number> = new Map();
+
+  private checkRateLimit(ip: string, endpoint: string, windowMs: number = 100) {
+    const key = `${ip}:${endpoint}`;
+    const now = Date.now();
+    const last = ItemsController.rateLimitMap.get(key) || 0;
+    if (now - last < windowMs) {
+      return false;
+    }
+    ItemsController.rateLimitMap.set(key, now);
+    return true;
+  }
   constructor(
     private generator: ItemGeneratorService,
     private config: ConfigService,
@@ -449,10 +463,28 @@ export class ItemsController {
   @Get('requests/:requestId/status')
   @ApiOperation({ summary: 'Get generation request status', description: 'Returns the current status and metrics for a generation request.' })
   @ApiParam({ name: 'requestId', description: 'Request ID returned in meta.requestId from /items/generate' })
-  async getRequestStatus(@Param('requestId') requestId: string) {
+  async getRequestStatus(@Param('requestId') requestId: string, @Req() request: any) {
+    // Basic requestId validation
+    if (!requestId || requestId.length < 4) {
+      throw new HttpException({ code: 'INVALID_REQUEST_ID', message: 'requestId too short' }, HttpStatus.BAD_REQUEST);
+    }
+
+    // Rate limit per IP
+    const ip = request.ip || (request.headers && (request.headers['x-forwarded-for'] || request.connection?.remoteAddress)) || 'unknown';
+    if (!this.checkRateLimit(ip, 'status')) {
+      throw new HttpException({ code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests' }, HttpStatus.TOO_MANY_REQUESTS);
+    }
+
     const req = await this.persistence.getGenerationRequest(requestId);
     if (!req) {
       throw new HttpException({ code: 'REQUEST_NOT_FOUND', message: 'Request not found' }, HttpStatus.NOT_FOUND);
+    }
+
+    // Expiry: do not disclose requests older than 24h
+    const ageMs = Date.now() - new Date(req.createdAt).getTime();
+    const TTL = 24 * 3600 * 1000;
+    if (ageMs > TTL) {
+      throw new HttpException({ code: 'REQUEST_EXPIRED', message: 'Request expired' }, HttpStatus.NOT_FOUND);
     }
 
     // Map DB status to API-friendly status
@@ -503,10 +535,28 @@ export class ItemsController {
   @Get('requests/:requestId')
   @ApiOperation({ summary: 'Get generation request details', description: 'If completed, returns generated items. Otherwise returns metadata and status.' })
   @ApiParam({ name: 'requestId' })
-  async getRequest(@Param('requestId') requestId: string) {
+  async getRequest(@Param('requestId') requestId: string, @Req() request: any) {
+    // Basic validation
+    if (!requestId || requestId.length < 4) {
+      throw new HttpException({ code: 'INVALID_REQUEST_ID', message: 'requestId too short' }, HttpStatus.BAD_REQUEST);
+    }
+
+    // Rate limit per IP
+    const ip = request.ip || (request.headers && (request.headers['x-forwarded-for'] || request.connection?.remoteAddress)) || 'unknown';
+    if (!this.checkRateLimit(ip, 'getRequest')) {
+      throw new HttpException({ code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests' }, HttpStatus.TOO_MANY_REQUESTS);
+    }
+
     const req = await this.persistence.getGenerationRequest(requestId);
     if (!req) {
       throw new HttpException({ code: 'REQUEST_NOT_FOUND', message: 'Request not found' }, HttpStatus.NOT_FOUND);
+    }
+
+    // Expiry: do not disclose requests older than 24h
+    const ageMs = Date.now() - new Date(req.createdAt).getTime();
+    const TTL = 24 * 3600 * 1000;
+    if (ageMs > TTL) {
+      throw new HttpException({ code: 'REQUEST_EXPIRED', message: 'Request expired' }, HttpStatus.NOT_FOUND);
     }
 
     const isCompleted = req.status === 'SUCCESS' && (!req.error || req.error !== 'CANCELLED');
@@ -537,15 +587,37 @@ export class ItemsController {
   @Delete('requests/:requestId/cancel')
   @ApiOperation({ summary: 'Cancel generation request', description: 'Cancel a pending or generating request.' })
   @ApiParam({ name: 'requestId' })
-  async cancelRequest(@Param('requestId') requestId: string) {
+  async cancelRequest(@Param('requestId') requestId: string, @Req() request: any) {
+    // Validation
+    if (!requestId || requestId.length < 4) {
+      throw new HttpException({ code: 'INVALID_REQUEST_ID', message: 'requestId too short' }, HttpStatus.BAD_REQUEST);
+    }
+
+    // Rate limit per IP
+    const ip = request.ip || (request.headers && (request.headers['x-forwarded-for'] || request.connection?.remoteAddress)) || 'unknown';
+    if (!this.checkRateLimit(ip, 'cancel')) {
+      throw new HttpException({ code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests' }, HttpStatus.TOO_MANY_REQUESTS);
+    }
+
     const req = await this.persistence.getGenerationRequest(requestId);
     if (!req) {
       throw new HttpException({ code: 'REQUEST_NOT_FOUND', message: 'Request not found' }, HttpStatus.NOT_FOUND);
     }
 
-    // Only allow cancelling if pending or still generating
-    if (req.status !== 'PENDING' && req.status !== 'SUCCESS') {
-      // If already ERROR treat as final
+    // Expiry: cannot cancel after 24h
+    const ageMs = Date.now() - new Date(req.createdAt).getTime();
+    const TTL = 24 * 3600 * 1000;
+    if (ageMs > TTL) {
+      throw new HttpException({ code: 'REQUEST_EXPIRED', message: 'Request expired' }, HttpStatus.NOT_FOUND);
+    }
+
+    const isStillGenerating = req.status === 'PENDING' || (req.normalizedItemsCount && req.normalizedItemsCount < req.n);
+    if (!isStillGenerating) {
+      return {
+        ok: false,
+        code: 'CANNOT_CANCEL',
+        message: 'Request already completed or failed',
+      };
     }
 
     await this.persistence.markRequestCancelled(requestId);
