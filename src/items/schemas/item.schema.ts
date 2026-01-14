@@ -14,6 +14,13 @@ export const ErrorTypeSchema = z.object({
   D: z.string().min(1),
 }).strict();
 
+export const ExplicacionesSchema = z.object({
+  A: z.string().min(30, 'Explicación A muy corta').max(300, 'Explicación A muy larga'),
+  B: z.string().min(30, 'Explicación B muy corta').max(300, 'Explicación B muy larga'),
+  C: z.string().min(30, 'Explicación C muy corta').max(300, 'Explicación C muy larga'),
+  D: z.string().min(30, 'Explicación D muy corta').max(300, 'Explicación D muy larga'),
+}).strict();
+
 export const ItemSchema = z
   .object({
     area: z.enum(['MAT', 'LC', 'CN', 'SOC', 'ING']),
@@ -26,6 +33,7 @@ export const ItemSchema = z
     justificacion: z.string().min(50, 'Justificación muy corta').max(450, 'Justificación muy larga'),
     tags: z.array(z.string().min(2).max(50)).min(1, 'Al menos 1 tag').max(6, 'Máximo 6 tags'),
     distractores: ErrorTypeSchema,
+    explicaciones: ExplicacionesSchema,
   })
   .strict()
   .refine(

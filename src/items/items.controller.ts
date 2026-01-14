@@ -93,6 +93,15 @@ export class ItemsController {
               justificacion: { type: 'string' },
               tags: { type: 'array', items: { type: 'string' } },
               distractores: { type: 'object' },
+              explicaciones: {
+                type: 'object',
+                properties: {
+                  A: { type: 'string' },
+                  B: { type: 'string' },
+                  C: { type: 'string' },
+                  D: { type: 'string' },
+                },
+              },
             },
           },
         },

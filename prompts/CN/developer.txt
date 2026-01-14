@@ -44,7 +44,15 @@ D) Tipado de distractores:
      "interpretacion_parcial_datos".
    - El tipo asignado debe corresponder exactamente al error real.
 
-E) Justificación:
+E) Explicaciones por opción (CRÍTICO):
+   - SIEMPRE incluir "explicaciones": { "A": "...", "B": "...", "C": "...", "D": "..." }
+   - Explicación A (correcta): "✅ Correcta porque..." (explica por qué funciona)
+   - Explicaciones B, C, D (incorrectas): "❌ Incorrecta porque..." (explica el error)
+   - Mínimo 30 caracteres, máximo 300 caracteres CADA UNA
+   - Usa el tipo de distractor para explicar el error específico
+   - Lenguaje pedagógico: enfócate en el concepto, no en criticar al estudiante
+
+F) Justificación:
    - Explica brevemente por qué la opción correcta se sustenta
      en la evidencia del contexto (1–3 ideas claras).
    - NO compares explícitamente con las opciones incorrectas.

@@ -79,6 +79,7 @@ model GeneratedItem {
   justificacion      String   @db.Text
   tags               Json     // array of strings
   distractores       Json     // {A: string, B: string, C: string, D: string} with error types
+  explicaciones      Json?    // {A: string, B: string, C: string, D: string} with explanations
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 

@@ -21,7 +21,70 @@ export class ItemGeneratorService {
     private config: ConfigService
   ) {}
 
+  /**
+   * Randomiza la posición de la respuesta correcta en las opciones
+   * Reorganiza opciones, respuesta_correcta, distractores y explicaciones
+   */
+  private randomizeCorrectAnswerPosition(item: any): any {
+    const positions = ['A', 'B', 'C', 'D'];
+    // Seleccionar posición aleatoria para la respuesta correcta (0-3)
+    const randomIndex = Math.floor(Math.random() * 4);
+    const newCorrectPosition = positions[randomIndex];
+
+    // Si ya está en la posición aleatoria, no hacer nada
+    if (item.respuesta_correcta === newCorrectPosition) {
+      return item;
+    }
+
+    // Mapeo: vieja posición → nueva posición
+    const mapping: Record<string, string> = {};
+    const oldPositions = [...positions];
+    const newPositions = [...positions];
+
+    // Reordenar: mover respuesta correcta a newCorrectPosition
+    const oldCorrectPos = item.respuesta_correcta;
+    const indexOfNew = newPositions.indexOf(newCorrectPosition);
+    const indexOfOld = oldPositions.indexOf(oldCorrectPos);
+
+    // Swap: posición vieja de correcta ↔ nueva posición de correcta
+    [newPositions[indexOfOld], newPositions[indexOfNew]] = [newPositions[indexOfNew], newPositions[indexOfOld]];
+
+    // Construir mapeo: newPositions[i] es donde va oldPositions[i]
+    for (let i = 0; i < 4; i++) {
+      mapping[oldPositions[i]] = newPositions[i];
+    }
+
+    // Crear nuevas opciones reordenadas
+    const newOpciones: Record<string, string> = {};
+    const newDistractores: Record<string, string> = {};
+    const newExplicaciones: Record<string, string> = {};
+
+    for (const oldPos of positions) {
+      const newPos = mapping[oldPos];
+      newOpciones[newPos] = item.opciones[oldPos];
+      newDistractores[newPos] = item.distractores[oldPos];
+      newExplicaciones[newPos] = item.explicaciones[oldPos];
+    }
+
+    return {
+      ...item,
+      opciones: newOpciones,
+      respuesta_correcta: newCorrectPosition,
+      distractores: newDistractores,
+      explicaciones: newExplicaciones,
+    };
+  }
+
   private getCorrectiveMessageForValidation(errors: string[]): string {
+    // Si los errores son sobre "Plantilla muy corta"
+    if (errors[0] && errors[0].includes('Plantilla muy corta')) {
+      return `ERROR CRÍTICO: La propiedad "plantilla" es INVÁLIDA.
+LA PLANTILLA DEBE SER UN NOMBRE DESCRIPTIVO DE MÍNIMO 3 CARACTERES.
+Ejemplos válidos: "suma simple", "problemas con context", "conversiones", "multiplicacion basica", etc.
+NO devuelvas plantilla vacía ni "string" ni "plantilla sugerida".
+Devuelve plantillas DESCRIPTIVAS de mínimo 3 caracteres.`;
+    }
+    
     // Si los errores son sobre tipos de distractores, dar mensaje específico
     if (errors[0] && errors[0].includes('tipo') && errors[0].includes('no permitido')) {
       return `ERROR: Tipos de distractores incorrectos. 
@@ -191,17 +254,33 @@ ${normErr.message}`;
               parseError: lastParseError,
             };
           }
-          // Reintento con mensaje correctivo
-          const correctiveMsg = `Tu salida anterior generó SOLO ${validatedItems.length} ítems pero se solicitaron ${n}.
-Devuelve EXACTAMENTE ${n} ítems JSON válidos en un array.
-Si N=${n}, retorna array de exactamente ${n} objetos.`;
+          // Reintento con mensaje correctivo DETALLADO
+          const correctiveMsg = `ERROR CRÍTICO: Se solicitaron EXACTAMENTE ${n} ítems pero solo generaste ${validatedItems.length}.
+
+INSTRUCCIÓN ABSOLUTA: Debe haber EXACTAMENTE ${n} objetos JSON en el array.
+
+CONTEO OBLIGATORIO:
+- Ítem 1 de ${n}: {...}
+- Ítem 2 de ${n}: {...}
+${n > 2 ? `- Ítem 3 de ${n}: {...}` : ''}
+${n > 3 ? `- Ítem 4 de ${n}: {...}` : ''}
+${n > 4 ? `- Ítem 5 de ${n}: {...}` : ''}
+${n > 5 ? `- ... hasta Ítem ${n} de ${n}: {...}` : ''}
+
+Devuelve UN ARRAY JSON con EXACTAMENTE ${n} objetos.
+Cada objeto tiene las 10 propiedades: area, dificultad, plantilla, contexto, pregunta, opciones, respuesta_correcta, justificacion, tags, distractores, explicaciones.
+NO devuelvas wrapper {"items": ...}. Solo el array.`;
           messages.push({ role: 'user', content: correctiveMsg });
           continue;
         }
 
         console.log(`[${requestId}] Successfully validated ${validatedItems.length} items`);
+        
+        // 5. Randomizar posición de respuesta correcta en cada ítem
+        const randomizedItems = validatedItems.map((item) => this.randomizeCorrectAnswerPosition(item));
+
         return {
-          items: validatedItems,
+          items: randomizedItems,
           rawModelOutput: respText,
           parseStatus: 'OK',
         };

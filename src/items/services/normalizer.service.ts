@@ -120,6 +120,7 @@ export class NormalizerService {
       pregunta: 250,
       opciones_field: 180,  // Para cada opción A-D
       justificacion: 450,
+      explicaciones_field: 300,  // Para cada explicación A-D
       tags_count: 6,
     };
 
@@ -141,6 +142,14 @@ export class NormalizerService {
 
     if (item.justificacion && item.justificacion.length > limits.justificacion) {
       item.justificacion = item.justificacion.substring(0, limits.justificacion) + '...';
+    }
+
+    if (item.explicaciones) {
+      Object.keys(item.explicaciones).forEach(key => {
+        if (item.explicaciones[key].length > limits.explicaciones_field) {
+          item.explicaciones[key] = item.explicaciones[key].substring(0, limits.explicaciones_field) + '...';
+        }
+      });
     }
 
     if (item.tags && Array.isArray(item.tags) && item.tags.length > limits.tags_count) {

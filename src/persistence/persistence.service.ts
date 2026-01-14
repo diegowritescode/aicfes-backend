@@ -57,6 +57,7 @@ export class PersistenceService {
             justificacion: item.justificacion,
             tags: item.tags,
             distractores: item.distractores,
+            explicaciones: item.explicaciones,
           },
         })
       )

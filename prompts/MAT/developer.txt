@@ -39,7 +39,15 @@ D) Justificación pedagógica:
    - No menciones ni critiques explícitamente las opciones incorrectas.
    - Justifica únicamente por qué la correcta cumple todas las condiciones.
 
-E) Control de complejidad por dificultad:
+E) Explicaciones por opción (CRÍTICO):
+   - SIEMPRE incluir "explicaciones": { "A": "...", "B": "...", "C": "...", "D": "..." }
+   - Explicación A (correcta): "✅ Correcta porque..." (explica por qué funciona)
+   - Explicaciones B, C, D (incorrectas): "❌ Incorrecta porque..." (explica el error)
+   - Mínimo 30 caracteres, máximo 300 caracteres CADA UNA
+   - Usa el tipo de distractor para explicar el error específico
+   - Lenguaje pedagógico: enfócate en el concepto, no en criticar al estudiante
+
+F) Control de complejidad por dificultad:
    - facil: una relación o condición principal.
    - media: máximo dos condiciones que cambian simultáneamente; sin cadenas largas.
    - alta: integración y validación de restricciones, sin rebuscar.

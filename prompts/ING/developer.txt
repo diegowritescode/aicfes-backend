@@ -55,6 +55,15 @@ REQUISITOS DE OPCIONES:
 - Las opciones deben ser completas y significativas.
 - Evita opciones muy cortas como "yes", "no", "x", "True".
 - Todas las opciones deben tener longitud similar y coherente.
+
+E) Explicaciones por opción (CRÍTICO):
+   - SIEMPRE incluir "explicaciones": { "A": "...", "B": "...", "C": "...", "D": "..." }
+   - Explicación A (correcta): "✅ Correcta porque..." (explica por qué funciona)
+   - Explicaciones B, C, D (incorrectas): "❌ Incorrecta porque..." (explica el error)
+   - Mínimo 30 caracteres, máximo 300 caracteres CADA UNA
+   - Usa el tipo de distractor para explicar el error específico
+   - Lenguaje pedagógico: enfócate en el concepto, no en criticar al estudiante
+
 F) Dificultad:
    - facil: selección directa con contexto claro.
    - media: interpretación de intención, tono o registro adecuado.
