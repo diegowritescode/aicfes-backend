@@ -3,6 +3,11 @@ import { z } from 'zod';
 const envSchema = z.object({
   OPENAI_API_KEY: z.string().min(1),
   OPENAI_MODEL: z.string().default('gpt-5-mini'),
+  JWT_SECRET: z.string().min(1),
+  JWT_EXPIRES: z.string().default('7d'),
+  REFRESH_TOKEN_EXPIRES_DAYS: z.string().default('30'),
+  REFRESH_COOKIE_NAME: z.string().default('refresh_token'),
+  ACCESS_COOKIE_NAME: z.string().default('access_token'),
   PORT: z.string().default('3000'),
   MAX_ITEMS: z.string().default('5'),
   MAX_RETRIES: z.string().default('2'),

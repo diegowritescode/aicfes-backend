@@ -8,6 +8,7 @@ import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { ConfigService } from '@nestjs/config';
 import * as path from 'path';
+import { AuthUserMiddleware } from './common/middleware/auth-user.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -27,6 +28,8 @@ async function bootstrap() {
     .setVersion('1.0.0')
     .addTag('Health', 'Estado del servidor')
     .addTag('Items', 'Generación y gestión de ítems de examen')
+    .addTag('Dashboard', 'Dashboard, sesiones de estudio y misiones')
+    .addTag('Auth', 'Registro y login básico')
     .addTag('Debug', 'Endpoints auxiliares para debugging/admin')
     .setContact(
       'AICFES Support',
@@ -70,7 +73,21 @@ async function bootstrap() {
     }),
   );
   app.use(json({ limit: BODY_LIMIT }));
-  app.enableCors({ origin: CORS_ORIGIN });
+  const corsOrigins = CORS_ORIGIN.split(',').map((origin) => origin.trim());
+  const allowAllOrigins = corsOrigins.includes('*');
+
+  app.enableCors({
+    origin: allowAllOrigins
+      ? true
+      : (origin, callback) => {
+          if (!origin || corsOrigins.includes(origin)) {
+            callback(null, true);
+            return;
+          }
+          callback(new Error('Not allowed by CORS'), false);
+        },
+    credentials: true,
+  });
 
   // Servir archivos estáticos ANTES del request middleware y prefix global
   const publicPath = path.join(__dirname, '..', 'public');
@@ -79,6 +96,7 @@ async function bootstrap() {
   expressApp.get('/api/docs', (_req, res) => res.redirect('/docs'));
   expressApp.get('/api/docs-json', (_req, res) => res.redirect('/docs-json'));
 
+  app.use(AuthUserMiddleware);
   app.use(RequestIdMiddleware);
   app.useGlobalFilters(new AllExceptionsFilter());
 

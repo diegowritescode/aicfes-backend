@@ -4,6 +4,8 @@ import { HealthModule } from './health/health.module';
 import { ItemsModule } from './items/items.module';
 import { PersistenceModule } from './persistence/persistence.module';
 import { validateEnv } from './config/env.validation';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -11,6 +13,8 @@ import { validateEnv } from './config/env.validation';
     PersistenceModule,
     HealthModule,
     ItemsModule,
+    DashboardModule,
+    AuthModule,
   ],
 })
 export class AppModule {}

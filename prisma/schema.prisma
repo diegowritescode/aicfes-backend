@@ -39,6 +39,136 @@ enum ParseStatus {
   FAIL
 }
 
+enum StudyMode {
+  generacion_libre
+  contrarreloj
+  test
+}
+
+enum MissionType {
+  questions_by_area
+  review_explanations
+  time_trial_sessions
+  review_test
+  sessions_completed
+}
+
+enum MissionRecurrence {
+  daily
+  weekly
+}
+
+model User {
+  id              String           @id @default(cuid())
+  email           String?          @unique
+  passwordHash    String?
+  passwordSalt    String?
+  timezone        String           @default("UTC")
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  studySessions   StudySession[]
+  xpEvents        XPEvent[]
+  missionProgress MissionProgress[]
+  refreshTokens   RefreshToken[]
+
+  @@index([createdAt])
+}
+
+model StudySession {
+  id               String     @id @default(cuid())
+  userId           String
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mode             StudyMode
+  area             Area
+  dificultad       Dificultad?
+  tema             String?
+  startedAt        DateTime
+  endedAt          DateTime
+  durationSeconds  Int
+  totalQuestions   Int
+  correctQuestions Int
+  correctXpAwarded Int        @default(0)
+  timeXpAwarded    Int        @default(0)
+  lastHeartbeatAt  DateTime?
+  answers          Answer[]
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@index([userId, endedAt])
+  @@index([userId, area])
+  @@index([userId, mode])
+}
+
+model Answer {
+  id             String       @id @default(cuid())
+  sessionId      String
+  session        StudySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  questionIndex  Int
+  area           Area?
+  dificultad     Dificultad?
+  selectedAnswer String?
+  isCorrect      Boolean
+  createdAt      DateTime     @default(now())
+
+  @@index([sessionId])
+}
+
+model XPEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Int
+  reason    String
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model MissionDefinition {
+  id          String            @id @default(cuid())
+  title       String
+  description String?
+  type        MissionType
+  target      Int
+  xpReward    Int
+  recurrence  MissionRecurrence
+  area        Area?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  progress    MissionProgress[]
+
+  @@index([recurrence])
+}
+
+model MissionProgress {
+  id          String            @id @default(cuid())
+  userId      String
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  missionId   String
+  mission     MissionDefinition @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  date        String
+  progress    Int               @default(0)
+  completedAt DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@unique([userId, missionId, date])
+  @@index([userId, date])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, expiresAt])
+}
+
 // Generation request metadata
 model GenerationRequest {
   id                    String   @id @default(cuid())
