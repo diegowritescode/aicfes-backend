@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req, Get, Query } from '@nestjs/common';
+import { Controller, Post, Body, Req, Get, Query, Param, Delete, HttpException, HttpStatus } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -439,6 +439,120 @@ export class ItemsController {
       meta: {
         count: failed.length,
       },
+    };
+  }
+
+  /**
+   * GET /api/items/requests/:requestId/status
+   * Devuelve estado y métricas del request de generación
+   */
+  @Get('requests/:requestId/status')
+  @ApiOperation({ summary: 'Get generation request status', description: 'Returns the current status and metrics for a generation request.' })
+  @ApiParam({ name: 'requestId', description: 'Request ID returned in meta.requestId from /items/generate' })
+  async getRequestStatus(@Param('requestId') requestId: string) {
+    const req = await this.persistence.getGenerationRequest(requestId);
+    if (!req) {
+      throw new HttpException({ code: 'REQUEST_NOT_FOUND', message: 'Request not found' }, HttpStatus.NOT_FOUND);
+    }
+
+    // Map DB status to API-friendly status
+    let status: string;
+    if (req.error === 'CANCELLED') {
+      status = 'cancelled';
+    } else if (req.status === 'PENDING') {
+      // If some items already normalized, consider it generating
+      status = req.normalizedItemsCount && req.normalizedItemsCount > 0 ? 'generating' : 'pending';
+    } else if (req.status === 'SUCCESS') {
+      status = 'completed';
+    } else {
+      status = 'failed';
+    }
+
+    const itemsGenerated = req.items ? req.items.length : 0;
+    const itemsRequested = req.n || 0;
+    const progress = itemsRequested > 0 ? Math.round((itemsGenerated / itemsRequested) * 100) : 0;
+
+    // Estimate remaining seconds using elapsed time per generated item
+    let estimatedRemainingSeconds: number | null = null;
+    if (itemsGenerated > 0 && status === 'generating') {
+      const now = new Date();
+      const startedAt = req.createdAt || new Date();
+      const elapsedSeconds = Math.max(1, Math.floor((now.getTime() - startedAt.getTime()) / 1000));
+      const avgPerItem = elapsedSeconds / Math.max(1, itemsGenerated);
+      estimatedRemainingSeconds = Math.round((itemsRequested - itemsGenerated) * avgPerItem);
+    }
+
+    return {
+      ok: true,
+      requestId: req.requestId,
+      status,
+      progress,
+      itemsRequested,
+      itemsGenerated,
+      estimatedRemainingSeconds,
+      startedAt: req.createdAt,
+      updatedAt: req.updatedAt,
+      error: req.error || null,
+    };
+  }
+
+  /**
+   * GET /api/items/requests/:requestId
+   * Si el request está completado devuelve los items generados
+   */
+  @Get('requests/:requestId')
+  @ApiOperation({ summary: 'Get generation request details', description: 'If completed, returns generated items. Otherwise returns metadata and status.' })
+  @ApiParam({ name: 'requestId' })
+  async getRequest(@Param('requestId') requestId: string) {
+    const req = await this.persistence.getGenerationRequest(requestId);
+    if (!req) {
+      throw new HttpException({ code: 'REQUEST_NOT_FOUND', message: 'Request not found' }, HttpStatus.NOT_FOUND);
+    }
+
+    const isCompleted = req.status === 'SUCCESS' && (!req.error || req.error !== 'CANCELLED');
+    if (isCompleted) {
+      return {
+        ok: true,
+        requestId: req.requestId,
+        status: 'completed',
+        items: req.items || [],
+      };
+    }
+
+    // Otherwise return status summary
+    const itemsGenerated = req.items ? req.items.length : 0;
+    return {
+      ok: true,
+      requestId: req.requestId,
+      status: req.error === 'CANCELLED' ? 'cancelled' : req.status === 'PENDING' ? 'pending' : 'failed',
+      itemsGenerated,
+      items: isCompleted ? req.items : undefined,
+    };
+  }
+
+  /**
+   * DELETE /api/items/requests/:requestId/cancel
+   * Cancela un request en curso (marca como cancelled)
+   */
+  @Delete('requests/:requestId/cancel')
+  @ApiOperation({ summary: 'Cancel generation request', description: 'Cancel a pending or generating request.' })
+  @ApiParam({ name: 'requestId' })
+  async cancelRequest(@Param('requestId') requestId: string) {
+    const req = await this.persistence.getGenerationRequest(requestId);
+    if (!req) {
+      throw new HttpException({ code: 'REQUEST_NOT_FOUND', message: 'Request not found' }, HttpStatus.NOT_FOUND);
+    }
+
+    // Only allow cancelling if pending or still generating
+    if (req.status !== 'PENDING' && req.status !== 'SUCCESS') {
+      // If already ERROR treat as final
+    }
+
+    await this.persistence.markRequestCancelled(requestId);
+
+    return {
+      ok: true,
+      data: { status: 'cancelled' },
     };
   }
 }

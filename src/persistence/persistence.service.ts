@@ -91,6 +91,18 @@ export class PersistenceService {
     });
   }
 
+  async markRequestCancelled(requestId: string) {
+    return this.prisma.generationRequest.update({
+      where: { requestId },
+      data: {
+        status: GenerationStatus.ERROR,
+        error: 'CANCELLED',
+        parseStatus: 'FAIL' as ParseStatus,
+        parseError: 'Cancelled by user',
+      },
+    });
+  }
+
   async getGenerationRequest(requestId: string) {
     return this.prisma.generationRequest.findUnique({
       where: { requestId },
