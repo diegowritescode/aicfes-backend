@@ -179,13 +179,32 @@ export class DashboardService {
     });
   }
 
-  private calculateSessionXp(input: StudySessionInput) {
+  private calculateSessionXp(input: StudySessionInput & { timeLimitSeconds?: number }) {
     const multiplier = getDifficultyMultiplier(input.dificultad);
     const xpFromCorrect = Math.round(Math.max(0, input.correctQuestions) * XP_PER_CORRECT * multiplier);
+    if (input.mode === 'contrarreloj') {
+      const totalQuestions = Math.max(0, input.totalQuestions);
+      const accuracy = totalQuestions > 0 ? input.correctQuestions / totalQuestions : 0;
+      const timeLimitSeconds = input.timeLimitSeconds || 0;
+      const speedFactor =
+        timeLimitSeconds > 0
+          ? Math.max(0, (timeLimitSeconds - input.durationSeconds) / timeLimitSeconds)
+          : 0;
+      const bonusXp = accuracy >= 0.5 ? Math.round(speedFactor * totalQuestions * 4) : 0;
+
+      return {
+        correctXp: xpFromCorrect,
+        timeXp: 0,
+        bonusXp,
+        total: xpFromCorrect + bonusXp,
+      };
+    }
+
     const xpFromTime = Math.floor(Math.max(0, input.durationSeconds) / 60) * XP_PER_MINUTE;
     return {
       correctXp: xpFromCorrect,
       timeXp: xpFromTime,
+      bonusXp: 0,
       total: xpFromCorrect + xpFromTime,
     };
   }
@@ -244,6 +263,22 @@ export class DashboardService {
         });
       }
 
+      if (xpAwarded.bonusXp > 0) {
+        await tx.xPEvent.create({
+          data: {
+            userId: user.id,
+            amount: xpAwarded.bonusXp,
+            reason: 'time_trial_bonus',
+            meta: {
+              mode: input.mode,
+              area: input.area,
+              totalQuestions: input.totalQuestions,
+              durationSeconds: input.durationSeconds,
+            },
+          },
+        });
+      }
+
       return created;
     });
     this.clearCache(user.id);
@@ -286,6 +321,55 @@ export class DashboardService {
     };
   }
 
+  async startTimeTrialSession(params: {
+    userId: string;
+    modeId?: string | null;
+    timeLimitSeconds: number;
+    questions: number;
+    area: string;
+    dificultad?: string | null;
+    mix?: Array<{ area: string; dificultad: string; n: number }> | null;
+  }) {
+    const user = await this.ensureUser(params.userId);
+    const startedAt = new Date();
+
+    const session = await this.prisma.studySession.create({
+      data: {
+        userId: user.id,
+        mode: 'contrarreloj',
+        modeId: params.modeId || null,
+        timeLimitSeconds: params.timeLimitSeconds,
+        questions: params.questions,
+        area: params.area as PrismaArea,
+        dificultad: (params.dificultad as any) || null,
+        tema: null,
+        startedAt,
+        endedAt: startedAt,
+        durationSeconds: 0,
+        totalQuestions: 0,
+        correctQuestions: 0,
+        correctXpAwarded: 0,
+        timeXpAwarded: 0,
+        areaBreakdown: params.mix
+          ? params.mix.map((entry) => ({
+              area: entry.area,
+              totalQuestions: entry.n,
+              correctQuestions: 0,
+            }))
+          : null,
+      },
+      select: { id: true, startedAt: true },
+    });
+
+    this.clearCache(user.id);
+    await this.emitDashboardUpdate(user.id, 'time_trial_started');
+
+    return {
+      sessionId: session.id,
+      startedAt: session.startedAt.toISOString(),
+    };
+  }
+
   async completeStudySession(userId: string, sessionId: string, input: CompleteSessionInput) {
     const session = await this.prisma.studySession.findFirst({
       where: { id: sessionId, userId },
@@ -297,6 +381,7 @@ export class DashboardService {
         startedAt: true,
         correctXpAwarded: true,
         timeXpAwarded: true,
+        timeLimitSeconds: true,
       },
     });
 
@@ -314,10 +399,12 @@ export class DashboardService {
       durationSeconds: input.durationSeconds,
       totalQuestions: input.totalQuestions,
       correctQuestions: input.correctQuestions,
+      timeLimitSeconds: session.timeLimitSeconds || undefined,
     });
 
     const deltaCorrect = xpAwarded.correctXp - (session.correctXpAwarded || 0);
     const deltaTime = xpAwarded.timeXp - (session.timeXpAwarded || 0);
+    const deltaBonus = xpAwarded.bonusXp;
 
     const operations: Array<ReturnType<typeof this.prisma.studySession.update> | ReturnType<typeof this.prisma.xPEvent.create>> = [
       this.prisma.studySession.update({
@@ -329,6 +416,7 @@ export class DashboardService {
           correctQuestions: input.correctQuestions,
           correctXpAwarded: xpAwarded.correctXp,
           timeXpAwarded: xpAwarded.timeXp,
+          areaBreakdown: input.areaSummary ? input.areaSummary : undefined,
         },
       }),
     ];
@@ -371,6 +459,26 @@ export class DashboardService {
       );
     }
 
+    if (deltaBonus > 0) {
+      operations.push(
+        this.prisma.xPEvent.create({
+          data: {
+            userId,
+            amount: deltaBonus,
+            reason: 'time_trial_bonus',
+            meta: {
+              sessionId,
+              mode: session.mode,
+              area: session.area,
+              totalQuestions: input.totalQuestions,
+              durationSeconds: input.durationSeconds,
+              timeLimitSeconds: session.timeLimitSeconds,
+            },
+          },
+        }),
+      );
+    }
+
     await this.prisma.$transaction(operations);
     this.clearCache(userId);
     await this.emitDashboardUpdate(userId, 'session_completed');
@@ -378,7 +486,7 @@ export class DashboardService {
     return {
       sessionId,
       xpAwarded: xpAwarded.total,
-      xpDelta: deltaCorrect + deltaTime,
+      xpDelta: deltaCorrect + deltaTime + deltaBonus,
     };
   }
 
@@ -520,6 +628,46 @@ export class DashboardService {
     return updated;
   }
 
+  async applySessionAreaSummary(params: {
+    userId: string;
+    sessionId: string;
+    areaSummary: Array<{ area: PrismaArea; totalQuestions: number; correctQuestions: number }>;
+  }) {
+    const session = await this.prisma.studySession.findFirst({
+      where: { id: params.sessionId, userId: params.userId },
+      select: { id: true },
+    });
+
+    if (!session) {
+      return null;
+    }
+
+    const totalQuestions = params.areaSummary.reduce(
+      (sum, entry) => sum + Math.max(0, entry.totalQuestions || 0),
+      0,
+    );
+    const correctQuestions = params.areaSummary.reduce(
+      (sum, entry) =>
+        sum + Math.max(0, Math.min(entry.correctQuestions || 0, entry.totalQuestions || 0)),
+      0,
+    );
+
+    const updated = await this.prisma.studySession.update({
+      where: { id: session.id },
+      data: {
+        totalQuestions,
+        correctQuestions,
+        areaBreakdown: params.areaSummary,
+      },
+      select: { id: true, totalQuestions: true, correctQuestions: true },
+    });
+
+    this.clearCache(params.userId);
+    await this.emitDashboardUpdate(params.userId, 'session_seeded');
+
+    return updated;
+  }
+
   private async ensureDefaultMissions() {
     await Promise.all(
       DEFAULT_MISSIONS.map((mission) =>
@@ -567,6 +715,7 @@ export class DashboardService {
       endedAt: Date;
       totalQuestions: number;
       correctQuestions: number;
+      areaBreakdown?: any;
     }>;
     answers: Array<{
       isCorrect: boolean;
@@ -606,14 +755,32 @@ export class DashboardService {
       }
     } else {
       for (const session of sessionsToday) {
-        totalQuestionsByArea.set(
-          session.area,
-          (totalQuestionsByArea.get(session.area) || 0) + Math.max(0, session.totalQuestions),
-        );
+        const breakdown = session.areaBreakdown as Array<{
+          area: PrismaArea;
+          totalQuestions: number;
+          correctQuestions: number;
+        }> | null;
 
-        const incorrect = Math.max(0, session.totalQuestions - session.correctQuestions);
-        incorrectQuestions += incorrect;
-        totalQuestionsCount += Math.max(0, session.totalQuestions);
+        if (breakdown && Array.isArray(breakdown) && breakdown.length > 0) {
+          for (const entry of breakdown) {
+            totalQuestionsByArea.set(
+              entry.area,
+              (totalQuestionsByArea.get(entry.area) || 0) + Math.max(0, entry.totalQuestions),
+            );
+            const incorrect = Math.max(0, entry.totalQuestions - entry.correctQuestions);
+            incorrectQuestions += incorrect;
+            totalQuestionsCount += Math.max(0, entry.totalQuestions);
+          }
+        } else {
+          totalQuestionsByArea.set(
+            session.area,
+            (totalQuestionsByArea.get(session.area) || 0) + Math.max(0, session.totalQuestions),
+          );
+
+          const incorrect = Math.max(0, session.totalQuestions - session.correctQuestions);
+          incorrectQuestions += incorrect;
+          totalQuestionsCount += Math.max(0, session.totalQuestions);
+        }
       }
     }
 
@@ -754,6 +921,7 @@ export class DashboardService {
         durationSeconds: true,
         totalQuestions: true,
         correctQuestions: true,
+        areaBreakdown: true,
       },
       orderBy: { endedAt: 'asc' },
     });
@@ -832,6 +1000,39 @@ export class DashboardService {
         answerAreaStats.set(area, entry);
       }
       areaProgress = Array.from(answerAreaStats.entries()).map(([area, entry]) => ({
+        area,
+        accuracy: entry.total > 0 ? Math.round((entry.correct / entry.total) * 100) : 0,
+        questions: entry.total,
+      }));
+    } else {
+      const areaTotals = new Map<Area, { total: number; correct: number }>();
+      for (const area of ['MAT', 'LC', 'CN', 'SOC', 'ING'] as Area[]) {
+        areaTotals.set(area, { total: 0, correct: 0 });
+      }
+
+      for (const session of weekSessions) {
+        const breakdown = session.areaBreakdown as Array<{
+          area: Area;
+          totalQuestions: number;
+          correctQuestions: number;
+        }> | null;
+
+        if (breakdown && Array.isArray(breakdown) && breakdown.length > 0) {
+          for (const entry of breakdown) {
+            const agg = areaTotals.get(entry.area) || { total: 0, correct: 0 };
+            agg.total += Math.max(0, entry.totalQuestions || 0);
+            agg.correct += Math.max(0, Math.min(entry.correctQuestions || 0, entry.totalQuestions || 0));
+            areaTotals.set(entry.area, agg);
+          }
+        } else {
+          const agg = areaTotals.get(session.area as Area) || { total: 0, correct: 0 };
+          agg.total += Math.max(0, session.totalQuestions);
+          agg.correct += Math.max(0, Math.min(session.correctQuestions, session.totalQuestions));
+          areaTotals.set(session.area as Area, agg);
+        }
+      }
+
+      areaProgress = Array.from(areaTotals.entries()).map(([area, entry]) => ({
         area,
         accuracy: entry.total > 0 ? Math.round((entry.correct / entry.total) * 100) : 0,
         questions: entry.total,

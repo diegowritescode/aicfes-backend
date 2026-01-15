@@ -8,5 +8,6 @@ import { DashboardStreamService } from './dashboard-stream.service';
   imports: [PersistenceModule],
   controllers: [DashboardController],
   providers: [DashboardService, DashboardStreamService],
+  exports: [DashboardService, DashboardStreamService],
 })
 export class DashboardModule {}

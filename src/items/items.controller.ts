@@ -8,10 +8,12 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { GenerateRequestSchema } from './dto/generate-request.schema';
+import { GenerateMixedSchema } from './dto/generate-mixed.schema';
 import { ItemGeneratorService } from './services/item-generator.service';
 import { ConfigService } from '@nestjs/config';
 import { PersistenceService } from '../persistence/persistence.service';
 import { nanoid } from 'nanoid';
+import { DashboardService } from '../dashboard/dashboard.service';
 
 /**
  * Controlador de generación de ítems ICFES
@@ -40,8 +42,25 @@ export class ItemsController {
   constructor(
     private generator: ItemGeneratorService,
     private config: ConfigService,
-    private persistence: PersistenceService
+    private persistence: PersistenceService,
+    private dashboardService: DashboardService
   ) {}
+
+  private pickString(value: unknown) {
+    if (Array.isArray(value)) {
+      return value[0];
+    }
+
+    return typeof value === 'string' ? value : undefined;
+  }
+
+  private getUserId(req: any, body?: any) {
+    const tokenUserId = this.pickString(req?.userId);
+    const headerId = this.pickString(req?.headers?.['x-user-id'] || req?.headers?.['x-userid']);
+    const bodyId = this.pickString(body?.userId || body?.session?.userId);
+    const candidate = tokenUserId || headerId || bodyId;
+    return candidate && candidate.trim() ? candidate.trim() : null;
+  }
 
   /**
    * POST /api/items/generate
@@ -281,6 +300,245 @@ export class ItemsController {
         },
       };
     }
+  }
+
+  /**
+   * POST /api/items/generate-mixed
+   * Genera un set mixto de ítems por área/dificultad
+   */
+  @Post('generate-mixed')
+  @ApiOperation({
+    summary: 'Generar ítems mixtos por secciones',
+    description:
+      'Permite armar una prueba con múltiples secciones (área + dificultad + n). ' +
+      'Devuelve una lista combinada de ítems con opción de barajar.',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['sections'],
+      properties: {
+        sections: {
+          type: 'array',
+          items: {
+            type: 'object',
+            required: ['area', 'dificultad', 'n'],
+            properties: {
+              area: { type: 'string', enum: ['MAT', 'LC', 'CN', 'SOC', 'ING'] },
+              dificultad: { type: 'string', enum: ['facil', 'media', 'alta'] },
+              n: { type: 'number' },
+              tema: { type: 'string' },
+              plantilla: { type: 'string' },
+            },
+          },
+        },
+        shuffle: { type: 'boolean', default: true },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Respuesta normalizada con ítems combinados',
+  })
+  async generateMixed(@Body() body: any, @Req() req: any) {
+    let batchRequestId = req.requestId;
+    if (!batchRequestId) {
+      batchRequestId = nanoid();
+      req.requestId = batchRequestId;
+    }
+
+    const parsed = GenerateMixedSchema.safeParse(body);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        items: [],
+        meta: {
+          requestId: batchRequestId,
+        },
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: JSON.stringify(parsed.error.errors),
+        },
+      };
+    }
+
+    const maxItems = Number(this.config.get('MAX_ITEMS') || 100);
+    const totalRequested = parsed.data.sections.reduce((sum, section) => sum + section.n, 0);
+    if (totalRequested > maxItems) {
+      return {
+        ok: false,
+        items: [],
+        meta: {
+          requestId: batchRequestId,
+          totalRequested,
+          maxItems,
+        },
+        error: {
+          code: 'MAX_ITEMS_EXCEEDED',
+          message: `Total requested (${totalRequested}) exceeds MAX_ITEMS (${maxItems}).`,
+        },
+      };
+    }
+
+    const sectionsMeta: Array<{
+      requestId: string;
+      area: string;
+      dificultad: string;
+      n: number;
+      generated: number;
+      error?: string;
+    }> = [];
+
+    const allItems: any[] = [];
+    let sessionMeta: { sessionId: string; startedAt: string } | null = null;
+
+    if (parsed.data.session?.create) {
+      const userId = this.getUserId(req, body);
+      if (!userId) {
+        return {
+          ok: false,
+          items: [],
+          meta: { requestId: batchRequestId },
+          error: {
+            code: 'USER_ID_REQUIRED',
+            message: 'Send Authorization header or X-User-Id to create a session.',
+          },
+        };
+      }
+
+      const firstSection = parsed.data.sections[0];
+      const startedAt = parsed.data.session.startedAt || new Date().toISOString();
+      const mode = parsed.data.session.mode || 'generacion_libre';
+      sessionMeta = await this.dashboardService.startStudySession(userId, {
+        userId,
+        timezone: parsed.data.session.timezone,
+        mode,
+        area: firstSection.area,
+        dificultad: firstSection.dificultad,
+        tema: firstSection.tema,
+        startedAt,
+      });
+
+      if (parsed.data.session.seedAreaSummary !== false) {
+        const areaSummaryMap = new Map<string, { area: string; totalQuestions: number; correctQuestions: number }>();
+        for (const section of parsed.data.sections) {
+          const entry = areaSummaryMap.get(section.area) || {
+            area: section.area,
+            totalQuestions: 0,
+            correctQuestions: 0,
+          };
+          entry.totalQuestions += section.n;
+          areaSummaryMap.set(section.area, entry);
+        }
+
+        const areaSummary = Array.from(areaSummaryMap.values());
+        await this.dashboardService.applySessionAreaSummary({
+          userId,
+          sessionId: sessionMeta.sessionId,
+          areaSummary: areaSummary as any,
+        });
+      }
+    }
+
+    for (const section of parsed.data.sections) {
+      const sectionRequestId = nanoid();
+      try {
+        await this.persistence.createGenerationRequest({
+          requestId: sectionRequestId,
+          area: section.area as any,
+          dificultad: section.dificultad as any,
+          tema: section.tema,
+          plantilla: section.plantilla,
+          n: section.n,
+        });
+
+        const result = await this.generator.generate(
+          {
+            area: section.area,
+            dificultad: section.dificultad,
+            tema: section.tema,
+            plantilla: section.plantilla,
+            n: section.n,
+          },
+          sectionRequestId,
+        );
+
+        if (result.items.length === 0) {
+          await this.persistence.markGenerationError(
+            sectionRequestId,
+            result.parseError || 'No valid items generated',
+            result.rawModelOutput,
+          );
+          sectionsMeta.push({
+            requestId: sectionRequestId,
+            area: section.area,
+            dificultad: section.dificultad,
+            n: section.n,
+            generated: 0,
+            error: result.parseError || 'No valid items generated',
+          });
+          continue;
+        }
+
+        await this.persistence.saveGeneratedItems({
+          requestId: sectionRequestId,
+          items: result.items,
+          rawModelOutput: result.rawModelOutput,
+          parseStatus: result.parseStatus,
+          parseError: result.parseError,
+        });
+
+        allItems.push(...result.items);
+        sectionsMeta.push({
+          requestId: sectionRequestId,
+          area: section.area,
+          dificultad: section.dificultad,
+          n: section.n,
+          generated: result.items.length,
+        });
+      } catch (error) {
+        await this.persistence.markGenerationError(
+          sectionRequestId,
+          error.message || 'Unknown error',
+        );
+        sectionsMeta.push({
+          requestId: sectionRequestId,
+          area: section.area,
+          dificultad: section.dificultad,
+          n: section.n,
+          generated: 0,
+          error: error.message || 'Unknown error',
+        });
+      }
+    }
+
+    if (parsed.data.shuffle) {
+      for (let i = allItems.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [allItems[i], allItems[j]] = [allItems[j], allItems[i]];
+      }
+    }
+
+    const ok = allItems.length > 0;
+
+    return {
+      ok,
+      items: allItems,
+      meta: {
+        requestId: batchRequestId,
+        totalRequested,
+        totalGenerated: allItems.length,
+        sections: sectionsMeta,
+        shuffle: parsed.data.shuffle,
+        session: sessionMeta,
+      },
+      error: ok
+        ? undefined
+        : {
+            code: 'GENERATION_FAILED',
+            message: 'No valid items generated for any section.',
+          },
+    };
   }
 
   /**
@@ -628,4 +886,3 @@ export class ItemsController {
     };
   }
 }
-

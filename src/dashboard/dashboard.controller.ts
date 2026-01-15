@@ -308,6 +308,39 @@ export class DashboardController {
       };
     }
 
+    if (parsed.data.areaSummary && parsed.data.areaSummary.length > 0) {
+      let sumTotal = 0;
+      let sumCorrect = 0;
+      for (const entry of parsed.data.areaSummary) {
+        if (entry.correctQuestions > entry.totalQuestions) {
+          return {
+            ok: false,
+            error: {
+              code: 'VALIDATION_ERROR',
+              message: 'areaSummary correctQuestions cannot exceed totalQuestions.',
+            },
+            meta: { userId },
+          };
+        }
+        sumTotal += entry.totalQuestions;
+        sumCorrect += entry.correctQuestions;
+      }
+
+      if (sumTotal <= 0) {
+        return {
+          ok: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'areaSummary totalQuestions must be > 0.',
+          },
+          meta: { userId },
+        };
+      }
+
+      parsed.data.totalQuestions = sumTotal;
+      parsed.data.correctQuestions = sumCorrect;
+    }
+
     const result = await this.dashboardService.completeStudySession(userId, sessionId, parsed.data);
     if (!result) {
       return {

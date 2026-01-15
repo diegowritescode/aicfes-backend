@@ -6,9 +6,10 @@ import { ItemGeneratorService } from './services/item-generator.service';
 import { NormalizerService } from './services/normalizer.service';
 import { ValidatorsService } from './services/validators.service';
 import { PersistenceModule } from '../persistence/persistence.module';
+import { DashboardModule } from '../dashboard/dashboard.module';
 
 @Module({
-  imports: [PersistenceModule],
+  imports: [PersistenceModule, DashboardModule],
   controllers: [ItemsController],
   providers: [
     PromptLoaderService,
@@ -17,5 +18,6 @@ import { PersistenceModule } from '../persistence/persistence.module';
     NormalizerService,
     ValidatorsService,
   ],
+  exports: [ItemGeneratorService, OpenaiService],
 })
 export class ItemsModule {}

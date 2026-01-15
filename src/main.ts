@@ -30,6 +30,8 @@ async function bootstrap() {
     .addTag('Items', 'Generación y gestión de ítems de examen')
     .addTag('Dashboard', 'Dashboard, sesiones de estudio y misiones')
     .addTag('Auth', 'Registro y login básico')
+    .addTag('TimeTrial', 'Modo contrarreloj')
+    .addTag('Feedback', 'Retroalimentación IA personalizada')
     .addTag('Debug', 'Endpoints auxiliares para debugging/admin')
     .setContact(
       'AICFES Support',
@@ -84,7 +86,7 @@ async function bootstrap() {
             callback(null, true);
             return;
           }
-          callback(new Error('Not allowed by CORS'), false);
+          callback(null, false);
         },
     credentials: true,
   });

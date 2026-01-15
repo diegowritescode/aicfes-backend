@@ -70,6 +70,7 @@ model User {
   xpEvents        XPEvent[]
   missionProgress MissionProgress[]
   refreshTokens   RefreshToken[]
+  feedbacks       Feedback[]
 
   @@index([createdAt])
 }
@@ -81,6 +82,9 @@ model StudySession {
   mode             StudyMode
   area             Area
   dificultad       Dificultad?
+  modeId           String?
+  timeLimitSeconds Int?
+  questions        Int?
   tema             String?
   startedAt        DateTime
   endedAt          DateTime
@@ -90,13 +94,51 @@ model StudySession {
   correctXpAwarded Int        @default(0)
   timeXpAwarded    Int        @default(0)
   lastHeartbeatAt  DateTime?
+  areaBreakdown    Json?
   answers          Answer[]
+  feedback         Feedback?
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
   @@index([userId, endedAt])
   @@index([userId, area])
   @@index([userId, mode])
+}
+
+model TimeTrialMode {
+  id              String   @id
+  title           String
+  description     String
+  timeLimitSeconds Int
+  questions       Int
+  area            Area?
+  dificultad      Dificultad?
+  mix             Json?
+  enabled         Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([enabled])
+}
+
+model Feedback {
+  id           String   @id @default(cuid())
+  sessionId    String   @unique
+  session      StudySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  summary      String
+  strengths    Json
+  weaknesses   Json
+  plan         Json
+  insights     Json
+  generatedAt  DateTime
+  model        String
+  promptVersion String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId, generatedAt])
 }
 
 model Answer {

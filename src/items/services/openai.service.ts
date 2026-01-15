@@ -8,11 +8,15 @@ export class OpenaiService {
   constructor(private config: ConfigService) {
     const key = this.config.get('OPENAI_API_KEY');
     if (!key) throw new Error('OPENAI_API_KEY not set');
-    this.client = new OpenAI({ apiKey: key });
+    const timeoutMs = Number(this.config.get('OPENAI_TIMEOUT_MS') || 180000);
+    this.client = new OpenAI({ apiKey: key, timeout: timeoutMs });
   }
 
-  async createResponse(messages: Array<{ role: 'developer' | 'user'; content: string }>): Promise<string> {
-    const model = this.config.get('OPENAI_MODEL') || 'gpt-5-mini';
+  async createResponse(
+    messages: Array<{ role: 'developer' | 'user'; content: string }>,
+    overrideModel?: string,
+  ): Promise<string> {
+    const model = overrideModel || this.config.get('OPENAI_MODEL') || 'gpt-5-mini';
     // Concatenate messages into a single input to Responses API
     const input = messages.map((m) => `${m.role}:
 ${m.content}`).join('\n\n');
