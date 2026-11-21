@@ -73,6 +73,8 @@ model User {
   feedbacks       Feedback[]
 
   @@index([createdAt])
+  simulacros    Simulacro[]
+
 }
 
 model StudySession {
@@ -275,4 +277,47 @@ model GeneratedItem {
   @@index([createdAt])
   @@index([verified, area, dificultad])
   @@unique([questionHash])
+}
+
+/// A practice sitting that mirrors the real exam's proportions.
+model Simulacro {
+  id            String   @id @default(cuid())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String
+  /// Scored questions in this sitting, scaled from the real 254.
+  totalPreguntas Int
+  /// Minutes allowed, at the real exam's pace.
+  minutos       Int
+  status        SimulacroStatus @default(en_curso)
+  startedAt     DateTime @default(now())
+  finishedAt    DateTime?
+  /// Score per area and overall, written when the sitting is graded.
+  resultados    Json?
+
+  preguntas     SimulacroPregunta[]
+
+  @@index([userId, startedAt])
+}
+
+/// One question within a sitting, in the order it is presented.
+model SimulacroPregunta {
+  id           String   @id @default(cuid())
+  simulacro    Simulacro @relation(fields: [simulacroId], references: [id], onDelete: Cascade)
+  simulacroId  String
+  itemId       String
+  area         Area
+  orden        Int
+  /// What the learner chose, null until they answer.
+  respuesta    String?
+  correcta     Boolean?
+  respondidaEn DateTime?
+
+  @@unique([simulacroId, orden])
+  @@index([simulacroId])
+}
+
+enum SimulacroStatus {
+  en_curso
+  terminado
+  abandonado
 }
