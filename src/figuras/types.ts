@@ -10,7 +10,8 @@ export type PlantillaId =
   | 'trianguloRectangulo'
   | 'graficaBarras'
   | 'tablaDatos'
-  | 'planoCartesiano';
+  | 'planoCartesiano'
+  | 'graficaLineas';
 
 export interface FiguraSpec {
   readonly plantilla: PlantillaId;
