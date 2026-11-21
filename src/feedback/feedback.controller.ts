@@ -16,11 +16,11 @@ export class FeedbackController {
     return typeof value === 'string' ? value : undefined;
   }
 
-  private getUserId(req: any, body?: any) {
-    const tokenUserId = this.pickString(req?.userId);
-    const headerId = this.pickString(req?.headers?.['x-user-id'] || req?.headers?.['x-userid']);
-    const bodyId = this.pickString(body?.userId);
-    const candidate = tokenUserId || headerId || bodyId;
+  private getUserId(req: any) {
+    // The token is the only trustworthy source. A header or body
+    // field is supplied by the caller, so accepting either let
+    // anyone read and write another learner's data.
+    const candidate = this.pickString(req?.userId);
     return candidate && candidate.trim() ? candidate.trim() : null;
   }
 
@@ -41,7 +41,7 @@ export class FeedbackController {
   })
   @ApiResponse({ status: 200, description: 'Feedback generated or cached.' })
   async generate(@Body() body: any, @Req() req: any) {
-    const userId = this.getUserId(req, body);
+    const userId = this.getUserId(req);
     if (!userId) {
       return {
         ok: false,

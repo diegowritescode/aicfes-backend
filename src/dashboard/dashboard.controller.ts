@@ -31,12 +31,11 @@ export class DashboardController {
     return typeof value === 'string' ? value : undefined;
   }
 
-  private getUserId(req: any, body?: any, queryUserId?: string) {
-    const tokenUserId = this.pickString(req?.userId);
-    const headerId = this.pickString(req?.headers?.['x-user-id'] || req?.headers?.['x-userid']);
-    const bodyId = this.pickString(body?.userId);
-    const queryId = this.pickString(queryUserId || req?.query?.userId);
-    const candidate = tokenUserId || headerId || bodyId || queryId;
+  private getUserId(req: any) {
+    // The token is the only trustworthy source. A header, query or
+    // body field is supplied by the caller, so accepting any of them
+    // let anyone read and write another learner's data.
+    const candidate = this.pickString(req?.userId);
     return candidate && candidate.trim() ? candidate.trim() : null;
   }
 
@@ -55,13 +54,13 @@ export class DashboardController {
     description: 'Dashboard payload',
   })
   async getDashboard(@Req() req: any, @Query('userId') userIdQuery?: string) {
-    const userId = this.getUserId(req, { userId: userIdQuery }, userIdQuery);
+    const userId = this.getUserId(req);
     if (!userId) {
       return {
         ok: false,
         error: {
           code: 'USER_ID_REQUIRED',
-          message: 'Send X-User-Id header or userId query param.',
+          message: 'Inicia sesión: esta ruta requiere un token válido.',
         },
         meta: {},
       };
@@ -95,7 +94,7 @@ export class DashboardController {
     @Res() res: Response,
     @Query('userId') userIdQuery?: string,
   ) {
-    const userId = this.getUserId(req, { userId: userIdQuery }, userIdQuery);
+    const userId = this.getUserId(req);
     if (!userId) {
       res.status(400).json({
         ok: false,
@@ -154,7 +153,7 @@ export class DashboardController {
   })
   @ApiResponse({ status: 200, description: 'Study session stored.' })
   async createStudySession(@Body() body: any, @Req() req: any) {
-    const userId = this.getUserId(req, body);
+    const userId = this.getUserId(req);
     if (!userId) {
       return {
         ok: false,
@@ -228,7 +227,7 @@ export class DashboardController {
   })
   @ApiResponse({ status: 200, description: 'Session started.' })
   async startSession(@Body() body: any, @Req() req: any) {
-    const userId = this.getUserId(req, body);
+    const userId = this.getUserId(req);
     if (!userId) {
       return {
         ok: false,
@@ -272,7 +271,7 @@ export class DashboardController {
     @Body() body: any,
     @Req() req: any,
   ) {
-    const userId = this.getUserId(req, body);
+    const userId = this.getUserId(req);
     if (!userId) {
       return {
         ok: false,
@@ -421,14 +420,14 @@ export class DashboardController {
 
     const payload = parsed.data as any;
     const answers = (Array.isArray(payload) ? payload : payload.answers) as AnswerInput[];
-    const userId = this.getUserId(req, { userId: payload.userId || userIdQuery }, userIdQuery);
+    const userId = this.getUserId(req);
 
     if (!userId) {
       return {
         ok: false,
         error: {
           code: 'USER_ID_REQUIRED',
-          message: 'Send X-User-Id header or userId query param/body.',
+          message: 'Inicia sesión: esta ruta requiere un token válido.body.',
         },
         meta: {},
       };
@@ -478,7 +477,7 @@ export class DashboardController {
     @Body() body: any,
     @Req() req: any,
   ) {
-    const userId = this.getUserId(req, body);
+    const userId = this.getUserId(req);
     if (!userId) {
       return {
         ok: false,
@@ -532,7 +531,7 @@ export class DashboardController {
   @ApiOperation({ summary: 'Achievements list' })
   @ApiResponse({ status: 200, description: 'Achievements and progress.' })
   async getAchievements(@Req() req: any, @Query('userId') userIdQuery?: string) {
-    const userId = this.getUserId(req, { userId: userIdQuery }, userIdQuery);
+    const userId = this.getUserId(req);
     if (!userId) {
       return {
         ok: false,
@@ -556,7 +555,7 @@ export class DashboardController {
   @ApiOperation({ summary: 'Advanced dashboard metrics' })
   @ApiResponse({ status: 200, description: 'Advanced metrics for trends and difficulty.' })
   async getAdvanced(@Req() req: any, @Query('userId') userIdQuery?: string) {
-    const userId = this.getUserId(req, { userId: userIdQuery }, userIdQuery);
+    const userId = this.getUserId(req);
     if (!userId) {
       return {
         ok: false,
@@ -580,7 +579,7 @@ export class DashboardController {
   @ApiOperation({ summary: 'Dashboard debug payload' })
   @ApiResponse({ status: 200, description: 'Debug payload for dashboard calculations.' })
   async getDebug(@Req() req: any, @Query('userId') userIdQuery?: string) {
-    const userId = this.getUserId(req, { userId: userIdQuery }, userIdQuery);
+    const userId = this.getUserId(req);
     if (!userId) {
       return {
         ok: false,
