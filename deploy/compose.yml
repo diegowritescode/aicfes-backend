@@ -27,7 +27,7 @@ services:
     networks: [internal]
 
   api:
-    image: ghcr.io/diegowritescode/aicfes-api:${AICFES_IMAGE_TAG:?set AICFES_IMAGE_TAG in deploy/.env}
+    image: ghcr.io/diegowritescode/aicfes-api:${AICFES_API_TAG:?set AICFES_API_TAG in deploy/.env}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -64,7 +64,7 @@ services:
       - traefik.http.services.aicfes-api.loadbalancer.server.port=3000
 
   web:
-    image: ghcr.io/diegowritescode/aicfes-web:${AICFES_IMAGE_TAG}
+    image: ghcr.io/diegowritescode/aicfes-web:${AICFES_WEB_TAG:?set AICFES_WEB_TAG in deploy/.env}
     restart: unless-stopped
     read_only: true
     tmpfs: [/tmp]
