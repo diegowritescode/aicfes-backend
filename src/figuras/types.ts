@@ -11,7 +11,8 @@ export type PlantillaId =
   | 'graficaBarras'
   | 'tablaDatos'
   | 'planoCartesiano'
-  | 'graficaLineas';
+  | 'graficaLineas'
+  | 'montajeExperimental';
 
 export interface FiguraSpec {
   readonly plantilla: PlantillaId;
