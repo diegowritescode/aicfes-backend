@@ -5,6 +5,7 @@ import { OpenaiService } from './services/openai.service';
 import { ItemGeneratorService } from './services/item-generator.service';
 import { NormalizerService } from './services/normalizer.service';
 import { ValidatorsService } from './services/validators.service';
+import { AnswerVerifierService } from './services/answer-verifier.service';
 import { PersistenceModule } from '../persistence/persistence.module';
 import { DashboardModule } from '../dashboard/dashboard.module';
 
@@ -17,6 +18,7 @@ import { DashboardModule } from '../dashboard/dashboard.module';
     ItemGeneratorService,
     NormalizerService,
     ValidatorsService,
+    AnswerVerifierService,
   ],
   exports: [ItemGeneratorService, OpenaiService],
 })
