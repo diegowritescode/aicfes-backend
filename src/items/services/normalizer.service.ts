@@ -115,6 +115,11 @@ export class NormalizerService {
    * Respeta límites ICFES para proteger la UI
    */
   trimFieldLengths(item: any): any {
+    // Cut to the limit including the ellipsis, so a trimmed field is never
+    // longer than the limit it exists to enforce.
+    const clip = (value: string, limit: number): string =>
+      value.length > limit ? value.substring(0, limit - 3) + '...' : value;
+
     const limits = {
       contexto: 1200,
       pregunta: 250,
@@ -124,31 +129,27 @@ export class NormalizerService {
       tags_count: 6,
     };
 
-    if (item.contexto && item.contexto.length > limits.contexto) {
-      item.contexto = item.contexto.substring(0, limits.contexto) + '...';
+    if (item.contexto) {
+      item.contexto = clip(item.contexto, limits.contexto);
     }
 
-    if (item.pregunta && item.pregunta.length > limits.pregunta) {
-      item.pregunta = item.pregunta.substring(0, limits.pregunta) + '...';
+    if (item.pregunta) {
+      item.pregunta = clip(item.pregunta, limits.pregunta);
     }
 
     if (item.opciones) {
       Object.keys(item.opciones).forEach(key => {
-        if (item.opciones[key].length > limits.opciones_field) {
-          item.opciones[key] = item.opciones[key].substring(0, limits.opciones_field) + '...';
-        }
+        item.opciones[key] = clip(item.opciones[key], limits.opciones_field);
       });
     }
 
-    if (item.justificacion && item.justificacion.length > limits.justificacion) {
-      item.justificacion = item.justificacion.substring(0, limits.justificacion) + '...';
+    if (item.justificacion) {
+      item.justificacion = clip(item.justificacion, limits.justificacion);
     }
 
     if (item.explicaciones) {
       Object.keys(item.explicaciones).forEach(key => {
-        if (item.explicaciones[key].length > limits.explicaciones_field) {
-          item.explicaciones[key] = item.explicaciones[key].substring(0, limits.explicaciones_field) + '...';
-        }
+        item.explicaciones[key] = clip(item.explicaciones[key], limits.explicaciones_field);
       });
     }
 
