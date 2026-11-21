@@ -58,7 +58,6 @@ CONTROL DE CALIDAD INTERNO:
   a la correcta (±1–3% o valores plausibles, cuando aplique).
 - Verifica unicidad de la respuesta correcta.
 
-FORMATO DE SALIDA (OBLIGATORIO):
 - CRÍTICO: Debe haber EXACTAMENTE N items. Si N=5, retorna array de 5 objetos.
 
 REQUISITOS DE OPCIONES:
@@ -71,3 +70,14 @@ REGLA DE CONTEXTO:
 - Evita declarar explícitamente que la relación es proporcional;
   deja que el estudiante la infiera a partir de los datos.
 - Si el usuario especifica Tema o Plantilla, debes aplicarlos fielmente.
+
+FIGURAS:
+- Puedes adjuntar una figura al ítem con el campo "figura".
+- Plantillas disponibles para esta área: trianguloRectangulo, graficaBarras, tablaDatos, planoCartesiano, graficaLineas.
+- Las preguntas de geometría y de lectura de datos casi siempre llevan figura en el examen real.
+- Inclúyela SOLO si la pregunta no se puede responder sin ella. Una figura
+  decorativa estorba.
+- Los números de la figura deben ser EXACTAMENTE los del contexto. La figura
+  se dibuja a partir de ellos, así que una cifra distinta hace que el dibujo
+  contradiga el enunciado.
+- Si no hace falta figura, deja el campo en null.
