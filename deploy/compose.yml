@@ -8,7 +8,10 @@ x-logging: &logging
 
 services:
   postgres:
-    image: postgres:16-alpine
+    # pgvector, not plain postgres: the near-duplicate check runs as a
+    # cosine comparison in the database, and the migration creates the
+    # extension.
+    image: pgvector/pgvector:pg16
     restart: unless-stopped
     environment:
       POSTGRES_USER: aicfes
