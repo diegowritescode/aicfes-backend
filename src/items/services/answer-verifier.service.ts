@@ -104,13 +104,19 @@ export class AnswerVerifierService {
         verdict = await this.claude.resolver(prompt);
         return this.juzgar(item, verdict);
       }
+
+      // Failing that, a more capable model from the same provider. It
+      // shares post-training habits with the generator, so it is weaker
+      // evidence than another family — but it does not share the
+      // capability ceiling, and most wrong answers are a reasoning
+      // failure the smaller model could not have caught in itself.
       verdict = await this.openai.createStructured<Verdict>(
         [
           { role: 'developer', content: VERIFIER_SYSTEM },
           { role: 'user', content: prompt },
         ],
         { schema: VERDICT_SCHEMA as unknown as Record<string, unknown>, schemaName: 'veredicto' },
-        this.config.get('OPENAI_VERIFIER_MODEL'),
+        this.config.get('OPENAI_VERIFIER_MODEL') ?? 'gpt-5',
       );
     } catch (error) {
       // A verifier that cannot be reached must not silently approve.

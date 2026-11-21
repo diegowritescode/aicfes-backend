@@ -22,6 +22,7 @@ interface Precio {
 
 const PRECIOS: Record<string, Precio> = {
   'gpt-5-mini': { entrada: 0.25, salida: 2.0 },
+  'gpt-5': { entrada: 1.25, salida: 10.0 },
   'gpt-4o-mini': { entrada: 0.15, salida: 0.6 },
   'claude-opus-5-5': { entrada: 4.0, salida: 20.0 },
   'claude-sonnet-5-5': { entrada: 2.0, salida: 10.0 },
