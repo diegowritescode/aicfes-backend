@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import * as assert from 'node:assert/strict';
-import { CostosService } from '../src/items/services/costos.service';
+import { CostosService } from '../src/calidad/costos.service';
 
 /**
  * These numbers decide what a subscription has to cost, so the

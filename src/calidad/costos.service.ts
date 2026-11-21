@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../persistence/prisma.service';
+import { PrismaService } from '../persistence/prisma.service';
 
 /**
  * What each model request costs, and who it was for.

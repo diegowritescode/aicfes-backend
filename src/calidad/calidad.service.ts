@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../persistence/prisma.service';
+import { PrismaService } from '../persistence/prisma.service';
 
 /**
  * Judges items by how they perform with real learners.

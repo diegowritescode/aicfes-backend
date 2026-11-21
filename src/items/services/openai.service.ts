@@ -1,8 +1,13 @@
 import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
+import { CostosService, type Operacion } from '../../calidad/costos.service';
 
 export interface StructuredRequest {
+  /** What this request was for, so cost can be attributed. */
+  readonly operacion?: Operacion;
+  /** Whose request it was; omitted for background work. */
+  readonly userId?: string | null;
   /** The JSON Schema the reply must satisfy. */
   readonly schema: Record<string, unknown>;
   /** A name for the schema, required by the API. */
@@ -15,7 +20,10 @@ export class OpenaiService {
   private readonly log = new Logger(OpenaiService.name);
   private client: OpenAI;
 
-  constructor(private config: ConfigService) {
+  constructor(
+    private config: ConfigService,
+    private readonly costos: CostosService,
+  ) {
     const key = this.config.get<string>('OPENAI_API_KEY');
     if (!key) throw new Error('OPENAI_API_KEY not set');
     const timeoutMs = Number(this.config.get('OPENAI_TIMEOUT_MS') || 180000);
@@ -38,6 +46,7 @@ export class OpenaiService {
           content: m.content,
         })),
       });
+      this.registrar('retroalimentacion', model, resp);
       return resp.output_text ?? '';
     } catch (error) {
       // The provider's message says which limit or key failed; losing it
@@ -49,6 +58,17 @@ export class OpenaiService {
         HttpStatus.BAD_GATEWAY,
       );
     }
+  }
+
+  /** Records a request's cost, never letting that failure surface. */
+  private registrar(operacion: Operacion, modelo: string, resp: unknown): void {
+    const usage = (resp as { usage?: { input_tokens?: number; output_tokens?: number } }).usage;
+    void this.costos.registrar({
+      operacion,
+      modelo,
+      tokensEntrada: usage?.input_tokens ?? 0,
+      tokensSalida: usage?.output_tokens ?? 0,
+    });
   }
 
   /**
@@ -86,6 +106,8 @@ export class OpenaiService {
       if (!text) {
         throw new Error('the model returned an empty response');
       }
+
+      this.registrar(request.operacion ?? 'generar', model, resp);
 
       // Under strict mode this parse cannot fail on shape, only on a
       // refusal or a truncated reply, both of which are worth surfacing.

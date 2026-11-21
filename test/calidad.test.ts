@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import * as assert from 'node:assert/strict';
-import { CalidadService } from '../src/items/services/calidad.service';
+import { CalidadService } from '../src/calidad/calidad.service';
 
 /**
  * These thresholds decide which items reach a paying learner, so the
