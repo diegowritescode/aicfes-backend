@@ -4,6 +4,7 @@ import { OpenaiService } from './openai.service';
 import { NormalizerService } from './normalizer.service';
 import { ValidatorsService } from './validators.service';
 import { AnswerVerifierService } from './answer-verifier.service';
+import { ItemBankService } from './item-bank.service';
 import { ITEMS_JSON_SCHEMA } from '../schemas/item.json-schema';
 import { ItemSchema } from '../schemas/item.schema';
 import { z } from 'zod';
@@ -21,6 +22,7 @@ export class ItemGeneratorService {
     private normalizer: NormalizerService,
     private validators: ValidatorsService,
     private verifier: AnswerVerifierService,
+    private bank: ItemBankService,
     private config: ConfigService
   ) {}
 
@@ -224,6 +226,13 @@ ${normErr.message}`;
             );
             if (!matchRes.valid) {
               throw new Error(matchRes.error);
+            }
+
+            // Rejected before verification, which costs a request: an
+            // item already in the bank is not worth checking again.
+            const duplicate = await this.bank.findDuplicate(validated);
+            if (duplicate) {
+              throw new Error(`duplicado: ${duplicate.reason}`);
             }
 
             // Structural checks only prove the item is self-consistent.

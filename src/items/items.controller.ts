@@ -12,6 +12,7 @@ import { GenerateMixedSchema } from './dto/generate-mixed.schema';
 import { ItemGeneratorService } from './services/item-generator.service';
 import { ConfigService } from '@nestjs/config';
 import { PersistenceService } from '../persistence/persistence.service';
+import { ItemBankService } from './services/item-bank.service';
 import { nanoid } from 'nanoid';
 import { DashboardService } from '../dashboard/dashboard.service';
 
@@ -43,6 +44,7 @@ export class ItemsController {
     private generator: ItemGeneratorService,
     private config: ConfigService,
     private persistence: PersistenceService,
+    private bank: ItemBankService,
     private dashboardService: DashboardService
   ) {}
 
@@ -253,13 +255,21 @@ export class ItemsController {
 
       // Guardar en BD
       console.log(`[${requestId}] Saving ${result.items.length} items to database`);
-      await this.persistence.saveGeneratedItems({
+      const saved = await this.persistence.saveGeneratedItems({
         requestId,
         items: result.items,
         rawModelOutput: result.rawModelOutput,
         parseStatus: result.parseStatus,
         parseError: result.parseError,
       });
+
+      // Indexing needs an embedding request per item, so it runs after
+      // the response is on its way rather than making the caller wait.
+      void Promise.all(
+        saved.map((row, i) =>
+          result.items[i] ? this.bank.indexItem(row.id, result.items[i]) : undefined,
+        ),
+      ).catch((error) => console.warn(`[${requestId}] indexing failed:`, error));
 
       console.log(`[${requestId}] Successfully completed generation`);
 

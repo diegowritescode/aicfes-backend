@@ -252,10 +252,27 @@ model GeneratedItem {
   tags               Json     // array of strings
   distractores       Json     // {A: string, B: string, C: string, D: string} with error types
   explicaciones      Json?    // {A: string, B: string, C: string, D: string} with explanations
+
+  // An item earns its place in the bank by being verified, and is reused
+  // from there instead of being generated again.
+  verified           Boolean  @default(false)
+  verifierAnswer     String?  // what the independent solver answered
+  verifierConfidence String?  // alta | media | baja
+  // Normalised question text, hashed: catches an exact repeat for free,
+  // before the cost of an embedding comparison.
+  questionHash       String?
+  // Embedding of the question, for near-duplicate detection via pgvector.
+  // Unsupported because Prisma has no vector type; the column is real.
+  embedding          Unsupported("vector(1536)")?
+  timesServed        Int      @default(0)
+  lastServedAt       DateTime?
+
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
   @@index([requestId])
   @@index([area])
   @@index([createdAt])
+  @@index([verified, area, dificultad])
+  @@unique([questionHash])
 }
