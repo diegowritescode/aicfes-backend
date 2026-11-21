@@ -254,6 +254,10 @@ model GeneratedItem {
   tags               Json     // array of strings
   distractores       Json     // {A: string, B: string, C: string, D: string} with error types
   explicaciones      Json?    // {A: string, B: string, C: string, D: string} with explanations
+  /// {plantilla, parametros} for a diagram drawn from the item's own
+  /// numbers. Stored as the spec, not as an image: fixing a template
+  /// then fixes every item that uses it.
+  figura             Json?
 
   // An item earns its place in the bank by being verified, and is reused
   // from there instead of being generated again.

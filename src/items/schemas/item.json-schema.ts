@@ -23,6 +23,8 @@ const letterMap = (description: string) => ({
   additionalProperties: false,
 });
 
+import { FIGURA_JSON_SCHEMA } from '../../figuras/registro';
+
 export const ITEM_JSON_SCHEMA = {
   type: 'object',
   properties: {
@@ -43,6 +45,9 @@ export const ITEM_JSON_SCHEMA = {
       'Para la opción correcta, exactamente "correcta". Para las demás, el tipo de error que representan',
     ),
     explicaciones: letterMap('Por qué esa opción es correcta o incorrecta (30 a 300 caracteres)'),
+    // Strict mode requires every property in `required`, so the figure
+    // is made optional by allowing null rather than by omitting it.
+    figura: { anyOf: [FIGURA_JSON_SCHEMA, { type: 'null' }] },
   },
   required: [
     'area',
@@ -56,6 +61,7 @@ export const ITEM_JSON_SCHEMA = {
     'tags',
     'distractores',
     'explicaciones',
+    'figura',
   ],
   additionalProperties: false,
 } as const;

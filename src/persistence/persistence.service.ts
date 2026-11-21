@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
-import { Area, Dificultad, GenerationStatus, ParseStatus } from '@prisma/client';
+import { Area, Dificultad, GenerationStatus, ParseStatus, Prisma } from '@prisma/client';
 import { hashQuestion } from '../common/question-hash';
 import { Item } from '../items/schemas/item.schema';
 
@@ -59,6 +59,7 @@ export class PersistenceService {
             tags: item.tags,
             distractores: item.distractores,
             explicaciones: item.explicaciones,
+            figura: (item as { figura?: Prisma.InputJsonValue | null }).figura ?? undefined,
             // Everything reaching this point has been solved
             // independently and agreed with, so it belongs in the bank.
             verified: true,

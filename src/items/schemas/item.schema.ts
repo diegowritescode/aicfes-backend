@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { validarFigura } from '../../figuras/registro';
 
 export const OptionSchema = z.object({
   A: z.string().min(5, 'Opción A muy corta').max(180, 'Opción A muy larga'),
@@ -34,6 +35,19 @@ export const ItemSchema = z
     tags: z.array(z.string().min(2).max(50)).min(1, 'Al menos 1 tag').max(6, 'Máximo 6 tags'),
     distractores: ErrorTypeSchema,
     explicaciones: ExplicacionesSchema,
+    // A figure is optional, but one that is present must describe a
+    // drawing that can actually be produced.
+    figura: z
+      .object({
+        plantilla: z.string(),
+        parametros: z.record(z.unknown()),
+        alt: z.string().optional(),
+      })
+      .nullable()
+      .optional()
+      .refine((f) => !f || validarFigura(f).valida, {
+        message: 'la figura no se puede dibujar con esos parámetros',
+      }),
   })
   .strict()
   .refine(
