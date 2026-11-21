@@ -321,3 +321,21 @@ enum SimulacroStatus {
   terminado
   abandonado
 }
+
+/// A real item from an official booklet, used as an example when
+/// generating a new one. Never served to a learner: it is the evidence
+/// the generator reasons from, not practice material.
+model ItemReferencia {
+  id         String   @id @default(cuid())
+  fuente     String   /// which booklet it came from
+  numero     Int      /// its number in that booklet
+  area       Area
+  enunciado  String   @db.Text
+  opciones   Json
+  /// Hash of the normalised stem, so re-running the extractor is safe.
+  hash       String   @unique
+  embedding  Unsupported("vector(1536)")?
+  createdAt  DateTime @default(now())
+
+  @@index([area])
+}

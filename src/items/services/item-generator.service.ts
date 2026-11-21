@@ -5,6 +5,7 @@ import { NormalizerService } from './normalizer.service';
 import { ValidatorsService } from './validators.service';
 import { AnswerVerifierService } from './answer-verifier.service';
 import { ItemBankService } from './item-bank.service';
+import { ReferenciaService } from './referencia.service';
 import { ITEMS_JSON_SCHEMA } from '../schemas/item.json-schema';
 import { ItemSchema } from '../schemas/item.schema';
 import { z } from 'zod';
@@ -23,6 +24,7 @@ export class ItemGeneratorService {
     private validators: ValidatorsService,
     private verifier: AnswerVerifierService,
     private bank: ItemBankService,
+    private referencia: ReferenciaService,
     private config: ConfigService
   ) {}
 
@@ -141,8 +143,18 @@ Si n=1 devuelve objeto, si n>1 devuelve array de n objetos.`;
       N: n,
     });
 
+    // Real items from the official booklets, shown before the request.
+    // Without them the model writes from its training memory, which is
+    // the same memory any competitor has; the booklets are not.
+    const ejemplos = await this.referencia.ejemplosPara({ area, tema, plantilla });
+    const bloqueEjemplos = this.referencia.formatearEjemplos(ejemplos);
+    if (ejemplos.length > 0) {
+      console.log(`[${requestId}] ${ejemplos.length} ítems oficiales como referencia`);
+    }
+
     let messages: Array<{ role: 'developer' | 'user'; content: string }> = [
       { role: 'developer', content: developer },
+      ...(bloqueEjemplos ? [{ role: 'user' as const, content: bloqueEjemplos }] : []),
       { role: 'user', content: userPrompt },
     ];
 

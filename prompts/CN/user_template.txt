@@ -1,4 +1,4 @@
-Genera EXACTAMENTE {{N}} ítem(s) tipo ICFES Saber 11. CRÍTICO: El array final debe contener exactamente {{N}} objetos JSON.
+Genera EXACTAMENTE {{N}} ítem(s) tipo ICFES Saber 11.
 
 PARÁMETROS:
 - Área: {{AREA}}
@@ -7,41 +7,9 @@ PARÁMETROS:
 - Plantilla sugerida: {{PLANTILLA}}
 
 INSTRUCCIONES DE SALIDA:
-- Devuelve SOLO JSON válido, sin texto adicional.
-- Si {{N}} == 1, devuelve UN OBJETO JSON (no array).
-- Si {{N}} > 1, devuelve UN ARRAY JSON de exactamente {{N}} objetos.
-- CRÍTICO: El array debe tener EXACTAMENTE {{N}} elementos. No más, no menos.
-- NO uses wrappers como {"items": ...} ni {"data": ...}.
-
-ESQUEMA DE SALIDA OBLIGATORIO:
-{
-  "area": "{{AREA}}",
-  "dificultad": "{{DIFICULTAD}}",
-  "plantilla": "nombre de la plantilla (mínimo 3 caracteres, ej: 'ciclos biogeoquímicos', 'transferencia de energía')",
-  "contexto": "string (20-1200 caracteres)",
-  "pregunta": "string (10-250 caracteres)",
-  "opciones": {
-    "A": "string (5-180 caracteres)",
-    "B": "string (5-180 caracteres)",
-    "C": "string (5-180 caracteres)",
-    "D": "string (5-180 caracteres)"
-  },
-  "respuesta_correcta": "A|B|C|D",
-  "justificacion": "string (50-450 caracteres)",
-  "tags": ["string", "string"],
-  "distractores": {
-    "A": "correcta",
-    "B": "tipo_error",
-    "C": "tipo_error",
-    "D": "tipo_error"
-  },
-  "explicaciones": {
-    "A": "Explicación breve de por qué es correcta (30-300 caracteres)",
-    "B": "Explicación breve de por qué es incorrecta (30-300 caracteres)",
-    "C": "Explicación breve de por qué es incorrecta (30-300 caracteres)",
-    "D": "Explicación breve de por qué es incorrecta (30-300 caracteres)"
-  }
-}
+- La estructura de la respuesta ya está garantizada por el sistema.
+- Concéntrate en el CONTENIDO: que el ítem sea correcto, claro y evaluable.
+- Debe haber exactamente {{N}} ítem(s), ni más ni menos.
 
 REGLAS CN ({{DIFICULTAD}}):
 - El contexto debe describir un fenómeno o experimento con variables explícitas.

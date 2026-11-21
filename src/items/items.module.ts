@@ -7,6 +7,7 @@ import { NormalizerService } from './services/normalizer.service';
 import { ValidatorsService } from './services/validators.service';
 import { AnswerVerifierService } from './services/answer-verifier.service';
 import { ItemBankService } from './services/item-bank.service';
+import { ReferenciaService } from './services/referencia.service';
 import { PersistenceModule } from '../persistence/persistence.module';
 import { DashboardModule } from '../dashboard/dashboard.module';
 
@@ -21,7 +22,8 @@ import { DashboardModule } from '../dashboard/dashboard.module';
     ValidatorsService,
     AnswerVerifierService,
     ItemBankService,
+    ReferenciaService,
   ],
-  exports: [ItemGeneratorService, OpenaiService, ItemBankService],
+  exports: [ItemGeneratorService, OpenaiService, ItemBankService, ReferenciaService],
 })
 export class ItemsModule {}
