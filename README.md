@@ -50,6 +50,25 @@ first. What the model produced is stored either way: a rejected
 generation keeps its raw output and a `ParseStatus`, so a failure can be
 read back rather than guessed at.
 
+## Figures
+
+Much of the exam cannot be asked in text alone: an angle needs its
+triangle, a reading question needs its chart. Figures are drawn from
+parameters rather than generated — a template is a function that takes
+the question's numbers and returns the SVG.
+
+The model names a template and supplies values; it never draws. An
+image model asked for a diagram puts the wrong number on the wrong
+side, which makes the question invalid rather than ugly.
+
+Six templates so far, ordered by what the official booklets use: right
+triangle, bar chart, data table, line chart, cartesian plane and
+laboratory setup. Each costs nothing, weighs 1–4 KB, and produces its
+own text alternative from the same values.
+
+The specification is stored, not the image, so correcting a template
+corrects every item that uses it.
+
 ## Practice sittings
 
 A sitting mirrors a real Saber 11 — five areas weighted as they are
