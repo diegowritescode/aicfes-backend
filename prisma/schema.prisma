@@ -358,3 +358,26 @@ model ItemReferencia {
 
   @@index([area])
 }
+
+/// One model request, with what it cost.
+///
+/// Pricing a subscription needs the cost of serving one learner, and
+/// nothing recorded it. Written per request rather than aggregated, so
+/// a surprising month can be traced to the operation that caused it.
+model ConsumoLlm {
+  id            String   @id @default(cuid())
+  userId        String?  /// null for background work with no learner
+  operacion     String   /// generar | verificar | embedding | retroalimentacion
+  modelo        String
+  tokensEntrada Int
+  tokensSalida  Int
+  /// Thousandths of a US cent, as an integer: floating point money
+  /// drifts, and a single request can cost a fraction of a cent.
+  costoMilicent Int
+  exito         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@index([operacion])
+}
