@@ -16,6 +16,7 @@
  *   node scripts/verificar-banco-local.mjs <banco.json> <salida.json> [limite]
  */
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
@@ -59,7 +60,10 @@ async function main() {
   const items = JSON.parse(readFileSync(entrada, 'utf-8'));
   // Resume: anything already judged is left alone.
   const hechos = existsSync(salida) ? JSON.parse(readFileSync(salida, 'utf-8')) : {};
-  const clave = (i) => `${i.fuente}#${i.numero}`;
+  // The stem identifies the question; fuente#numero does not — the
+  // same number appears in many files, so 2,374 items collapsed to
+  // 1,223 keys and each verdict overwrote another.
+  const clave = (i) => createHash('sha256').update(i.enunciado).digest('hex').slice(0, 16);
 
   const pendientes = items.filter((i) => !hechos[clave(i)]);
   const total = limiteArg ? Math.min(Number(limiteArg), pendientes.length) : pendientes.length;
