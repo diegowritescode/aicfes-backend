@@ -25,22 +25,41 @@ it more nicely does not fix this. Checking its output does.
 
 ## How the boundary works
 
-Raw model text passes through four stages before a row is written:
+Three layers, each answering one way the model fails.
 
-1. **Normalize** — strip the markdown fence, recover JSON from surrounding
-   prose, unwrap the `items` or `data` envelope the model sometimes adds,
-   and wrap a lone object in an array so callers always get a list.
-2. **Validate the shape** — a Zod schema over every field. Anything that
-   does not match is rejected, not coerced.
-3. **Validate the content** — distractors are checked against the rules for
-   their area, the correct answer is checked for type agreement with the
-   distractors, and the options are checked against the distractor list.
-4. **Trim** — fields are cut to the lengths the interface can display,
-   ellipsis included in the limit.
+**Shape** is handled by the API. The request carries a JSON Schema in
+strict mode, so generation is constrained to the item structure: a
+markdown fence, prose around the object or a missing field cannot come
+back at all.
 
-What the model produced is stored either way. A rejected generation keeps
-its raw output and a `ParseStatus`, so a failure can be read back and
-understood rather than guessed at.
+**Correctness** is checked by solving the item a second time. The
+verifier sees the question and the options, but not the answer, the
+justification or the explanations. An item is rejected when the verdict
+disagrees, when the verifier reports it as ambiguous or
+multiply-correct, or when it is right but unconfident. This is what
+catches an item claiming 2+2=5 with that option marked correct — it
+passes every structural check, because it does agree with itself.
+
+**Repetition** is caught twice: a hash of the normalised question
+catches an exact repeat for nothing, and cosine distance over pgvector
+embeddings catches a reworded one. Numbers survive normalisation, since
+three apples and four apples are different items.
+
+Verified items are kept in a bank and served again, least recently used
+first. What the model produced is stored either way: a rejected
+generation keeps its raw output and a `ParseStatus`, so a failure can be
+read back rather than guessed at.
+
+## Practice sittings
+
+A sitting mirrors a real Saber 11 — five areas weighted as they are
+officially, across two sessions of four and a half hours — scaled to the
+length the learner has. Scaling hands the rounding remainder back out,
+so the parts sum to the whole.
+
+Questions come from the bank, so starting a sitting is a query rather
+than dozens of model requests. Grading reports accuracy per area,
+weakest first, and the areas under 70% become the study plan.
 
 ## Running it
 
