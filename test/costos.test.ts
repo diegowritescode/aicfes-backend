@@ -52,3 +52,11 @@ test('is always a whole number of thousandths', () => {
     assert.ok(Number.isInteger(c('gpt-5-mini', n, n)), `integer for ${n}`);
   }
 });
+
+test('verifying with the larger model stays cheap per item', () => {
+  // The verifier sees the question and four options and answers three
+  // fields: roughly 400 tokens in, 30 out.
+  const porItem = c('gpt-5', 400, 30) / 100_000;
+  assert.ok(porItem < 0.002, `${porItem.toFixed(5)} per verification`);
+  assert.ok(porItem * 1000 < 2, 'a thousand verifications under two dollars');
+});
