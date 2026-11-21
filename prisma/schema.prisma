@@ -269,6 +269,25 @@ model GeneratedItem {
   timesServed        Int      @default(0)
   lastServedAt       DateTime?
 
+  /// How the item performs with real learners.
+  ///
+  /// An item everyone gets right teaches nothing; one almost everyone
+  /// gets wrong is usually badly written rather than hard. Without
+  /// these numbers there is no way to tell the difference, and no
+  /// evidence that the product works — which is what a paying customer
+  /// is buying.
+  vecesRespondido    Int      @default(0)
+  vecesCorrecto      Int      @default(0)
+  /// Milliseconds, summed: divided by vecesRespondido gives the mean.
+  tiempoTotalMs      BigInt   @default(0)
+  /// How often each option was chosen, as {A,B,C,D}. A distractor
+  /// nobody ever picks is not doing its job.
+  conteoOpciones     Json?
+  /// Set when the numbers say the item is not usable, so it stops
+  /// being served without being deleted.
+  retirado           Boolean  @default(false)
+  motivoRetiro       String?
+
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
