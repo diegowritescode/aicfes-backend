@@ -35,8 +35,11 @@ const verifierWith = (verdict: Verdict | Error, enabled = true) => {
       return verdict;
     },
   };
+  // Cross-family verification off here: these tests pin the judging
+  // rules, which are the same whichever model produced the verdict.
+  const claude = { disponible: false, resolver: async () => verdict as Verdict };
   const config = { get: (_k: string, d?: string) => (enabled ? d ?? 'true' : 'false') };
-  return new AnswerVerifierService(openai as never, config as never);
+  return new AnswerVerifierService(openai as never, claude as never, config as never);
 };
 
 test('accepts an item the verifier solves the same way', async () => {
@@ -82,4 +85,42 @@ test('rejects rather than approves when the verifier cannot be reached', async (
 test('passes everything through when verification is switched off', async () => {
   const result = await verifierWith(new Error('never called'), false).verify(item);
   assert.equal(result.accepted, true);
+});
+
+test('prefers the other model family when it is available', async () => {
+  // The two must not be asked the same thing by the same model: that is
+  // the whole point of the second family.
+  let openaiLlamado = false;
+  const openai = {
+    createStructured: async () => {
+      openaiLlamado = true;
+      return { respuesta: 'A', confianza: 'alta', problema: 'ninguno' };
+    },
+  };
+  const claude = {
+    disponible: true,
+    resolver: async () => ({ respuesta: 'C', confianza: 'alta', problema: 'ninguno' }),
+  };
+  const config = { get: (_k: string, d?: string) => d ?? 'true' };
+  const service = new AnswerVerifierService(openai as never, claude as never, config as never);
+
+  const result = await service.verify(item);
+  assert.equal(result.accepted, true, 'Claude agreed with C, so the item stands');
+  assert.equal(openaiLlamado, false, 'the generating family was not asked to check itself');
+});
+
+test('falls back to the single family when the other is not configured', async () => {
+  const claude = {
+    disponible: false,
+    resolver: async () => {
+      throw new Error('should not be called');
+    },
+  };
+  const openai = {
+    createStructured: async () => ({ respuesta: 'C', confianza: 'alta', problema: 'ninguno' }),
+  };
+  const config = { get: (_k: string, d?: string) => d ?? 'true' };
+  const service = new AnswerVerifierService(openai as never, claude as never, config as never);
+
+  assert.equal((await service.verify(item)).accepted, true);
 });

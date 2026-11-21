@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OpenaiService } from './openai.service';
+import { VerificadorClaudeService } from './verificador-claude.service';
 import type { Item } from '../schemas/item.schema';
 
 /**
@@ -65,6 +66,7 @@ export class AnswerVerifierService {
 
   constructor(
     private readonly openai: OpenaiService,
+    private readonly claude: VerificadorClaudeService,
     private readonly config: ConfigService,
   ) {}
 
@@ -94,6 +96,14 @@ export class AnswerVerifierService {
 
     let verdict: Verdict;
     try {
+      // A different family first. A model checking its own work shares
+      // its blind spots: having mis-solved the item while writing it, it
+      // tends to mis-solve it the same way while checking, and agreement
+      // then proves nothing.
+      if (this.claude.disponible) {
+        verdict = await this.claude.resolver(prompt);
+        return this.juzgar(item, verdict);
+      }
       verdict = await this.openai.createStructured<Verdict>(
         [
           { role: 'developer', content: VERIFIER_SYSTEM },
@@ -109,6 +119,11 @@ export class AnswerVerifierService {
       return { accepted: false, reason: `verifier unavailable: ${detail}` };
     }
 
+    return this.juzgar(item, verdict);
+  }
+
+  /** The same rules whichever model produced the verdict. */
+  private juzgar(item: Item, verdict: Verdict): VerificationResult {
     if (verdict.problema !== 'ninguno') {
       return {
         accepted: false,
