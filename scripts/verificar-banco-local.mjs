@@ -28,26 +28,67 @@ Resuelve la pregunta por tu cuenta y responde SOLO con este JSON, sin texto alre
 Usa "problema" para señalar si la pregunta es ambigua, si más de una opción es defendible,
 o si ninguna lo es. Si la pregunta depende de una imagen que no ves, responde "ambigua".`;
 
-function prompt(item) {
-  const opciones = ['A', 'B', 'C', 'D']
-    .map((k) => `${k}) ${item.opciones[k] ?? ''}`)
-    .join('\n');
-  return `${INSTRUCCION}\n\nÁrea: ${item.area}\n${item.enunciado}\n\n${opciones}`;
+/* The extractor let the next block's header run on into the last
+   option, so an item could end with "D) 1 : 5 RESPONDA LAS PREGUNTAS
+   12 Y 13 DE ACUERDO CON LA SIGUIENTE INFORMACIÓN Dentro de una caja
+   hermética...". Asked to answer questions that are not there, the
+   model abandoned the JSON format and replied in prose — which the
+   parser recorded as a failure, 317 times. */
+const ARRASTRE =
+  /\s*(RESPONDA\s+(LAS?\s+)?PREGUNTAS?\b|CONTESTE\s+(LAS?\s+)?PREGUNTAS?\b|DE\s+ACUERDO\s+CON\s+LA\s+SIGUIENTE\s+INFORMACI[ÓO]N\b|RESPONDA\s+DE\s+ACUERDO\b).*$/is;
+
+function limpiarArrastre(texto) {
+  return (texto ?? '').replace(ARRASTRE, '').trim();
 }
 
-async function verificar(item) {
-  // The prompt goes as an argument: piping to stdin races the CLI's
-  // own 3-second wait and it proceeds without the input.
-  const { stdout } = await run('claude', ['-p', prompt(item)], {
-    maxBuffer: 1024 * 1024,
-    timeout: 180_000,
-  });
-  // The CLI returns the model's text; a fence sometimes survives.
+function prompt(item) {
+  const opciones = ['A', 'B', 'C', 'D']
+    .map((k) => `${k}) ${limpiarArrastre(item.opciones[k])}`)
+    .join('\n');
+  const enunciado = limpiarArrastre(item.enunciado);
+  return `${INSTRUCCION}\n\nÁrea: ${item.area}\n${enunciado}\n\n${opciones}`;
+}
+
+/* Some stems are missing the text or figure they refer to. That is a
+   verdict ("ambigua"), not a failure, so the retry says so outright
+   rather than letting the model ask for the missing material. */
+const REINTENTO = `\n\nIMPORTANTE: responde ÚNICAMENTE con el JSON pedido, en una sola línea.
+No expliques, no razones en voz alta, no pidas material adicional.
+Si falta el texto, la gráfica o la información a la que la pregunta se refiere,
+responde {"respuesta":"A","confianza":"baja","problema":"ambigua"}.`;
+
+function extraerJson(stdout) {
   const limpio = stdout.replace(/```json\n?|```/g, '').trim();
   const inicio = limpio.indexOf('{');
   const fin = limpio.lastIndexOf('}');
-  if (inicio === -1 || fin === -1) throw new Error(`sin JSON: ${limpio.slice(0, 80)}`);
-  return JSON.parse(limpio.slice(inicio, fin + 1));
+  if (inicio === -1 || fin === -1) return null;
+  try {
+    return JSON.parse(limpio.slice(inicio, fin + 1));
+  } catch {
+    return null;
+  }
+}
+
+async function pedir(texto) {
+  // The prompt goes as an argument: piping to stdin races the CLI's
+  // own 3-second wait and it proceeds without the input.
+  const { stdout } = await run('claude', ['-p', texto], {
+    maxBuffer: 1024 * 1024,
+    timeout: 180_000,
+  });
+  return stdout;
+}
+
+async function verificar(item) {
+  const base = prompt(item);
+
+  const primera = extraerJson(await pedir(base));
+  if (primera) return primera;
+
+  const segunda = extraerJson(await pedir(base + REINTENTO));
+  if (segunda) return segunda;
+
+  throw new Error('sin JSON tras reintento');
 }
 
 async function main() {
@@ -65,7 +106,13 @@ async function main() {
   // 1,223 keys and each verdict overwrote another.
   const clave = (i) => createHash('sha256').update(i.enunciado).digest('hex').slice(0, 16);
 
-  const pendientes = items.filter((i) => !hechos[clave(i)]);
+  /* A recorded error is not a verdict. Items that failed before are
+     retried, so fixing the prompt actually reaches the 317 that the
+     run-on header broke. Real verdicts are still left alone. */
+  const pendientes = items.filter((i) => {
+    const previo = hechos[clave(i)];
+    return !previo || previo.error || !previo.respuesta;
+  });
   const total = limiteArg ? Math.min(Number(limiteArg), pendientes.length) : pendientes.length;
 
   console.log(`${items.length} ítems, ${Object.keys(hechos).length} ya verificados`);
