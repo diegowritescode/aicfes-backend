@@ -113,9 +113,58 @@ segundos en decir algo se cierra sin leerse.
 
 ---
 
-## 2. Perfil de debilidades (prioridad alta)
+## 2. Perfil de debilidades — **construido** (nov 2026)
 
-### Qué es
+Está en producción. Lo que sigue describe lo que quedó hecho y lo que
+aún no.
+
+### Qué quedó funcionando
+
+`PerfilDebilidad`: una fila por estudiante, área y tema, contando
+respuestas, aciertos y cuántas veces apareció cada tipo de error.
+`DebilidadesService.temasDebiles()` devuelve los temas por prioridad y
+`areaPrioritaria()` dice qué área poner delante.
+
+La cadena estaba rota en tres puntos, y cada uno hacía inútil al
+siguiente:
+
+1. La API nunca devolvía el id del ítem guardado, así que el cliente no
+   tenía qué mandar de vuelta.
+2. El cliente no enviaba `itemId`, así que el filtro del servidor
+   descartaba todas las respuestas.
+3. `createAnswers` aceptaba `itemId` en su schema y lo tiraba al
+   insertar.
+
+Por eso `GeneratedItem.vecesRespondido` estaba en cero en los 22 ítems
+mientras se registraban respuestas reales: la medición de calidad
+llevaba tiempo cableada y nunca había recibido nada.
+
+Verificado en producción: dos respuestas erradas produjeron seis temas
+con su tipo de error, y la calidad del ítem pasó de 0 a 2 filas.
+
+### Reglas que lo mantienen honesto
+
+- **Cuatro respuestas mínimo** por tema antes de que cuente. Dos
+  fallos de tres no son evidencia.
+- **`areaPrioritaria` devuelve null** hasta tener datos suficientes: a
+  un estudiante nuevo no se le empuja a ningún lado.
+- **Una debilidad vieja pesa menos.** Lo que alguien falló en marzo no
+  debe superar lo de la semana pasada.
+- El mínimo de muestra está **en el servicio además de en la consulta**.
+  Sólo en SQL, la regla es invisible para quien lee el código — lo
+  descubrió una prueba.
+
+### Lo que falta
+
+Nada de esto *usa* el perfil todavía. Queda:
+
+- Que las misiones diarias salgan de las debilidades en vez de la lista
+  fija de cinco.
+- Que contrarreloj sortee con sesgo hacia lo flojo.
+- "El error del día".
+- Que el plan del feedback deje de ser genérico.
+
+### Qué era (diseño original)
 
 Que la plataforma aprenda en qué falla cada estudiante, y no al nivel
 grueso de "va mal en Sociales", sino fino: ángulos, la segunda ley de
@@ -273,10 +322,9 @@ gratuita de forma recurrente. Eso es demanda; lo demás es suponer.
 
 ## Orden sugerido
 
-1. **Contrarreloj rediseñado** — mejora algo que existe y funciona.
-2. **Perfil de debilidades** — recolección, casi todo el dato ya se
-   genera.
-3. **Modal de tutoría** — depende de 2 para ser útil de verdad.
+1. ~~**Perfil de debilidades**~~ — hecho (nov 2026). Falta usarlo.
+2. **Contrarreloj rediseñado**, sorteando desde las debilidades.
+3. **Modal de tutoría** — ahora sí tiene de dónde sacar el contexto.
 4. **"El error del día" y racha con perdón** — dependen de 2.
 5. **Duelos** — cuando haya usuarios que duelar.
 6. **Overlay** — proyecto aparte, con su propio plan legal.
@@ -300,3 +348,7 @@ Para no reconstruirlo por olvido:
   rota.
 - **Registro de costes por petición** (`ConsumoLlm`), que es de donde
   salen los números de este documento.
+- **Perfil de debilidades por tema y tipo de error**, alimentado desde
+  cada respuesta.
+- **Calidad de ítem medida con respuestas reales**, que es lo que
+  distingue una pregunta difícil de una mal escrita.
