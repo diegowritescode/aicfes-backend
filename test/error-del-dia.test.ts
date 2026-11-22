@@ -26,6 +26,7 @@ function servicio(opciones: {
   item?: Record<string, unknown> | null;
   temasDebiles?: Array<Record<string, unknown>>;
   respuestaDeHoy?: boolean;
+  aciertoDeHoy?: boolean;
   falla?: boolean;
 }): ErrorDelDiaService {
   const prisma = {
@@ -34,7 +35,12 @@ function servicio(opciones: {
         if (opciones.falla) throw new Error('base caída');
         return opciones.respuestas ?? [];
       },
-      findFirst: async () => (opciones.respuestaDeHoy ? { id: 'a1' } : null),
+      findFirst: async ({ where }: { where: Record<string, unknown> }) => {
+        // The query asks for a *correct* answer today; the stub has to
+        // respect that filter or the test proves nothing.
+        if (where?.isCorrect === true && !opciones.aciertoDeHoy) return null;
+        return opciones.aciertoDeHoy || opciones.respuestaDeHoy ? { id: 'a1' } : null;
+      },
     },
     generatedItem: {
       findUnique: async () => opciones.item ?? item,
@@ -96,14 +102,24 @@ test('sin errores pendientes cae al tema más flojo', async () => {
   assert.match(hoy!.motivo, /angulos internos/);
 });
 
-test('dice si ya la respondió hoy', async () => {
-  // The card should show as done rather than inviting the same
-  // question a second time.
+test('se marca hecha solo cuando la acertó hoy', async () => {
+  const hoy = await servicio({
+    respuestas: [{ itemId: 'i1', isCorrect: false, createdAt: hace(2) }],
+    aciertoDeHoy: true,
+  }).paraHoy('u1');
+  assert.equal(hoy?.resueltoHoy, true);
+});
+
+test('fallarla hoy no la da por hecha', async () => {
+  // The bug this replaces: asking only whether it had been answered
+  // closed the card the moment the learner failed it, which is exactly
+  // when it deserves another go. Failing it today is the reason it is
+  // today's question.
   const hoy = await servicio({
     respuestas: [{ itemId: 'i1', isCorrect: false, createdAt: hace(2) }],
     respuestaDeHoy: true,
   }).paraHoy('u1');
-  assert.equal(hoy?.resueltoHoy, true);
+  assert.equal(hoy?.resueltoHoy, false);
 });
 
 test('no devuelve la respuesta correcta', async () => {

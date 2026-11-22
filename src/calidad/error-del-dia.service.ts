@@ -138,18 +138,30 @@ export class ErrorDelDiaService {
     };
   }
 
-  /** Whether this item was already answered today, in their timezone. */
+  /**
+   * Whether this item was *got right* today, in their timezone.
+   *
+   * It used to ask only whether it had been answered, which marked the
+   * card done the moment the learner failed it — exactly when it is
+   * worth another go. Failing it today is the reason it is today's
+   * question, not a reason to put it away.
+   */
   private async yaRespondioHoy(
     userId: string,
     itemId: string,
     timeZone: string,
   ): Promise<boolean> {
     const inicio = this.inicioDelDiaLocal(timeZone);
-    const respuesta = await this.prisma.answer.findFirst({
-      where: { itemId, createdAt: { gte: inicio }, session: { userId } },
+    const acierto = await this.prisma.answer.findFirst({
+      where: {
+        itemId,
+        isCorrect: true,
+        createdAt: { gte: inicio },
+        session: { userId },
+      },
       select: { id: true },
     });
-    return Boolean(respuesta);
+    return Boolean(acierto);
   }
 
   /**

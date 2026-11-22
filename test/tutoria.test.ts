@@ -117,16 +117,19 @@ test('la apertura usa la explicación de la opción que eligió', async () => {
   assert.ok(!tutor.contenido.includes('✅'), 'no se filtra la de la correcta');
 });
 
-test('la apertura pide el razonamiento del estudiante', async () => {
+test('la apertura explica y pregunta en un solo mensaje', async () => {
   // Without an explicit invitation the learner does not know whether
-  // to restate their reasoning or just leave.
+  // to restate their reasoning or just leave. Split across two
+  // messages it read as the panel saying the same thing twice.
   const svc = servicio({
     tutoria: { id: 't1', itemId: 'i1', opcionElegida: 'B', mensajes: [] },
     item,
   });
   const estado = await svc.abrir({ userId: 'u1', itemId: 'i1', opcionElegida: 'B' });
-  const texto = estado!.mensajes.map((m) => m.contenido).join(' ');
-  assert.match(texto, /qué fue lo que pensó/);
+  const deTutor = estado!.mensajes.filter((m) => m.autor === 'tutor');
+  assert.equal(deTutor.length, 1, 'la apertura es un turno, no dos');
+  assert.match(deTutor[0].contenido, /olvidó dividir/);
+  assert.match(deTutor[0].contenido, /Qué fue lo que pensó/i);
 });
 
 test('la defensa la responde el modelo, no una frase guardada', async () => {

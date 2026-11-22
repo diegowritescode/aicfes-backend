@@ -114,15 +114,15 @@ export class TutoriaService {
       const texto = propia ?? item?.justificacion;
 
       if (texto) {
-        await this.prisma.tutoriaMensaje.create({
-          data: { tutoriaId: tutoria.id, autor: 'tutor', contenido: texto },
-        });
+        /* One message, not two. The explanation and the question that
+           follows it are a single turn of talking; splitting them put
+           three blocks on screen that all said some version of "tell
+           me what you were thinking". */
         await this.prisma.tutoriaMensaje.create({
           data: {
             tutoriaId: tutoria.id,
             autor: 'tutor',
-            contenido:
-              'Ahora cuénteme usted: ¿qué fue lo que pensó al elegir su respuesta? Con eso veo dónde se desvió el razonamiento.',
+            contenido: `${texto}\n\n¿Qué fue lo que pensó al elegir su respuesta?`,
           },
         });
       }
