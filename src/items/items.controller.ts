@@ -1,4 +1,6 @@
-import { Controller, Post, Body, Req, Get, Query, Param, Delete, HttpException, HttpStatus } from '@nestjs/common';
+import { SesionRequeridaGuard } from '../common/guards/sesion-requerida.guard';
+import { CuotaGuard } from '../common/guards/cuota.guard';
+import { Controller, Post, Body, Req, Get, Query, Param, Delete, HttpException, HttpStatus, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -68,6 +70,7 @@ export class ItemsController {
    * POST /api/items/generate
    * Genera nuevos ítems ICFES con respuesta normalizada
    */
+  @UseGuards(SesionRequeridaGuard, CuotaGuard)
   @Post('generate')
   @ApiOperation({
     summary: 'Generar ítems de examen ICFES',
@@ -316,6 +319,7 @@ export class ItemsController {
    * POST /api/items/generate-mixed
    * Genera un set mixto de ítems por área/dificultad
    */
+  @UseGuards(SesionRequeridaGuard, CuotaGuard)
   @Post('generate-mixed')
   @ApiOperation({
     summary: 'Generar ítems mixtos por secciones',
