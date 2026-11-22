@@ -9,6 +9,7 @@ import { validateEnv } from './config/env.validation';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { AuthModule } from './auth/auth.module';
 import { TimeTrialModule } from './time-trial/time-trial.module';
+import { TutoriaModule } from './tutoria/tutoria.module';
 import { FeedbackModule } from './feedback/feedback.module';
 
 @Module({
@@ -22,6 +23,7 @@ import { FeedbackModule } from './feedback/feedback.module';
     DashboardModule,
     AuthModule,
     TimeTrialModule,
+    TutoriaModule,
     FeedbackModule,
   ],
 })

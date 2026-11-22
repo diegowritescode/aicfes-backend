@@ -72,6 +72,7 @@ model User {
   refreshTokens   RefreshToken[]
   feedbacks       Feedback[]
   debilidades     PerfilDebilidad[]
+  tutorias        Tutoria[]
 
   @@index([createdAt])
   simulacros    Simulacro[]
@@ -204,6 +205,48 @@ model PerfilDebilidad {
 
   @@unique([userId, area, tema])
   @@index([userId, area])
+}
+
+/// A conversation about one question the learner got wrong.
+///
+/// Tied to the learner and the item, not to the session: someone who
+/// fails the same question twice should meet the same conversation,
+/// with the tutor remembering what was already said. Starting over
+/// each time would make the second explanation identical to the first,
+/// which is exactly what did not work the first time.
+model Tutoria {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// The GeneratedItem being discussed.
+  itemId    String
+  /// What the learner first chose. Kept because the conversation is
+  /// about that specific mistake, even after they answer correctly.
+  opcionElegida String
+  /// Their own account of why they chose it, asked for before the
+  /// tutor says anything. Verbalising the reasoning is where the
+  /// mistake becomes visible, to them and to us.
+  defensa   String?  @db.Text
+  mensajes  TutoriaMensaje[]
+  /// True once they answered the question correctly afterwards.
+  resuelto  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, itemId])
+  @@index([userId])
+}
+
+model TutoriaMensaje {
+  id        String   @id @default(cuid())
+  tutoriaId String
+  tutoria   Tutoria  @relation(fields: [tutoriaId], references: [id], onDelete: Cascade)
+  /// 'estudiante' or 'tutor'.
+  autor     String
+  contenido String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([tutoriaId])
 }
 
 model XPEvent {

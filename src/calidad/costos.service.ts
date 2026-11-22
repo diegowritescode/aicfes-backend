@@ -33,7 +33,12 @@ const PRECIOS: Record<string, Precio> = {
 /** Used when a model is not in the table, so cost is never silently zero. */
 const PRECIO_DESCONOCIDO: Precio = { entrada: 5.0, salida: 20.0 };
 
-export type Operacion = 'generar' | 'verificar' | 'embedding' | 'retroalimentacion';
+export type Operacion =
+  | 'generar'
+  | 'verificar'
+  | 'embedding'
+  | 'retroalimentacion'
+  | 'tutoria';
 
 @Injectable()
 export class CostosService {
