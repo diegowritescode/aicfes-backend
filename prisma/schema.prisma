@@ -71,6 +71,7 @@ model User {
   missionProgress MissionProgress[]
   refreshTokens   RefreshToken[]
   feedbacks       Feedback[]
+  debilidades     PerfilDebilidad[]
 
   @@index([createdAt])
   simulacros    Simulacro[]
@@ -152,9 +153,49 @@ model Answer {
   dificultad     Dificultad?
   selectedAnswer String?
   isCorrect      Boolean
+  /// Which item was answered. Without it the answer cannot be joined
+  /// back to the question's topic or to the kind of mistake the chosen
+  /// option represents, which is everything the weakness profile needs.
+  /// Nullable because answers recorded before this existed have none.
+  itemId         String?
+  /// How long the learner took. A correct answer that took three
+  /// minutes is not the same as one that took twenty seconds.
+  tiempoMs       Int?
   createdAt      DateTime     @default(now())
 
   @@index([sessionId])
+  @@index([itemId])
+}
+
+/// What a learner keeps getting wrong, and at what grain.
+///
+/// StudySession already says how a learner did in an area. That is too
+/// coarse to act on: "flojo en Matemáticas" does not say whether the
+/// problem is angles or percentages, and the whole point is to put the
+/// right thing in front of them tomorrow.
+///
+/// One row per learner, area and topic. `tipoErrores` counts how often
+/// each kind of mistake appeared — error_calculo,
+/// interpretacion_parcial, confunde_conceptos — which the generator
+/// already labels on every distractor and which was being thrown away.
+model PerfilDebilidad {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  area         Area
+  /// The topic, from the item's own tags: "angulos", "leyes de newton".
+  tema         String
+  respondidas  Int      @default(0)
+  acertadas    Int      @default(0)
+  /// {error_calculo: 3, confunde_conceptos: 1}
+  tipoErrores  Json     @default("{}")
+  /// Lets a weakness fade: what someone failed in March should not
+  /// outrank what they failed last week.
+  ultimoFallo  DateTime?
+  actualizadoEn DateTime @updatedAt
+
+  @@unique([userId, area, tema])
+  @@index([userId, area])
 }
 
 model XPEvent {

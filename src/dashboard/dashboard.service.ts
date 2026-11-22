@@ -527,6 +527,11 @@ export class DashboardService {
         dificultad: answer.dificultad ?? null,
         selectedAnswer: answer.selectedAnswer ?? null,
         isCorrect: answer.isCorrect,
+        // Accepted by the schema but dropped on the way in, so every
+        // answer so far says only "wrong, in MAT" — with no way back to
+        // the topic or the kind of mistake.
+        itemId: answer.itemId ?? null,
+        tiempoMs: answer.tiempoMs ?? null,
       })),
     });
 

@@ -11,6 +11,7 @@ import { DashboardStreamService } from './dashboard-stream.service';
 import { StudySessionSchema } from './dto/study-session.schema';
 import { AnswerInput, AnswersPayloadSchema } from './dto/answers.schema';
 import { CalidadService } from '../calidad/calidad.service';
+import { DebilidadesService } from '../calidad/debilidades.service';
 import { HeartbeatSchema } from './dto/heartbeat.schema';
 import { StartSessionSchema } from './dto/start-session.schema';
 import { CompleteSessionSchema } from './dto/complete-session.schema';
@@ -23,6 +24,7 @@ export class DashboardController {
     private dashboardService: DashboardService,
     private dashboardStream: DashboardStreamService,
     private calidad: CalidadService,
+    private debilidades: DebilidadesService,
   ) {}
 
   private pickString(value: unknown) {
@@ -439,18 +441,30 @@ export class DashboardController {
     // a hard one, and it can only be learned from real answers. Recorded
     // alongside the answer rather than instead of it: a failure here
     // must not cost the learner their progress.
-    void Promise.all(
-      answers
-        .filter((a) => typeof a.itemId === 'string' && a.itemId.length > 0)
-        .map((a) =>
-          this.calidad.registrarRespuesta({
-            itemId: a.itemId as string,
-            opcionElegida: a.selectedAnswer ?? '',
-            correcta: a.isCorrect,
-            tiempoMs: a.tiempoMs ?? 0,
-          }),
-        ),
-    ).catch((error) => console.warn('No se pudo registrar la calidad:', error));
+    const conItem = answers.filter(
+      (a) => typeof a.itemId === 'string' && a.itemId.length > 0,
+    );
+    void Promise.all([
+      ...conItem.map((a) =>
+        this.calidad.registrarRespuesta({
+          itemId: a.itemId as string,
+          opcionElegida: a.selectedAnswer ?? '',
+          correcta: a.isCorrect,
+          tiempoMs: a.tiempoMs ?? 0,
+        }),
+      ),
+      // The same answers, read the other way round: item quality asks
+      // whether the question is any good, the weakness profile asks
+      // what this learner keeps getting wrong.
+      ...conItem.map((a) =>
+        this.debilidades.registrar({
+          userId,
+          itemId: a.itemId as string,
+          opcionElegida: a.selectedAnswer ?? '',
+          correcta: a.isCorrect,
+        }),
+      ),
+    ]).catch((error) => console.warn('No se pudo registrar la calidad:', error));
 
     const sessionIds: string[] = Array.from(
       new Set(

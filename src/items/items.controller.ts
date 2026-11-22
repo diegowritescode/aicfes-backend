@@ -276,10 +276,19 @@ export class ItemsController {
 
       console.log(`[${requestId}] Successfully completed generation`);
 
+      /* The stored id travels with the item. Without it the client has
+         nothing to send back when the learner answers, so every answer
+         arrived unattributable: item quality stayed at zero rows and
+         the weakness profile had no topic to attach a mistake to. */
+      const itemsConId = result.items.map((item, i) => ({
+        ...item,
+        id: saved[i]?.id,
+      }));
+
       // Respuesta exitosa (SIEMPRE array, nunca objeto)
       return {
         ok: true,
-        items: result.items,
+        items: itemsConId,
         meta: {
           requestId,
           area: parsed.data.area,
@@ -494,7 +503,7 @@ export class ItemsController {
           continue;
         }
 
-        await this.persistence.saveGeneratedItems({
+        const guardados = await this.persistence.saveGeneratedItems({
           requestId: sectionRequestId,
           items: result.items,
           rawModelOutput: result.rawModelOutput,
@@ -502,7 +511,9 @@ export class ItemsController {
           parseError: result.parseError,
         });
 
-        allItems.push(...result.items);
+        allItems.push(
+          ...result.items.map((item, i) => ({ ...item, id: guardados[i]?.id })),
+        );
         sectionsMeta.push({
           requestId: sectionRequestId,
           area: section.area,

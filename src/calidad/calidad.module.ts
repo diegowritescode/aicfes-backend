@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { CalidadService } from './calidad.service';
 import { CostosService } from './costos.service';
 import { CuotaService } from './cuota.service';
+import { DebilidadesService } from './debilidades.service';
 import { PersistenceModule } from '../persistence/persistence.module';
 
 /**
@@ -11,7 +12,7 @@ import { PersistenceModule } from '../persistence/persistence.module';
  */
 @Module({
   imports: [PersistenceModule],
-  providers: [CalidadService, CostosService, CuotaService],
-  exports: [CalidadService, CostosService, CuotaService],
+  providers: [CalidadService, CostosService, CuotaService, DebilidadesService],
+  exports: [CalidadService, CostosService, CuotaService, DebilidadesService],
 })
 export class CalidadModule {}
