@@ -95,6 +95,39 @@ export class TutoriaService {
       include: { mensajes: { orderBy: { createdAt: 'asc' } } },
     });
 
+    /* The stored explanation opens the thread, before the defence is
+       asked for.
+
+       It used to be the reply *to* the defence, which read as a
+       non-sequitur: it was written when the item was generated, so it
+       cannot possibly address what the learner just typed. They were
+       left not knowing whether to restate their reasoning or move on.
+       Said first it is what it is — here is what went wrong — and the
+       question that follows it is a real one, answered by a model
+       that has read the reply. */
+    if (tutoria.mensajes.length === 0) {
+      const item = await this.prisma.generatedItem.findUnique({
+        where: { id: tutoria.itemId },
+      });
+      const explicaciones = (item?.explicaciones as Record<string, string> | null) ?? {};
+      const propia = explicaciones[tutoria.opcionElegida];
+      const texto = propia ?? item?.justificacion;
+
+      if (texto) {
+        await this.prisma.tutoriaMensaje.create({
+          data: { tutoriaId: tutoria.id, autor: 'tutor', contenido: texto },
+        });
+        await this.prisma.tutoriaMensaje.create({
+          data: {
+            tutoriaId: tutoria.id,
+            autor: 'tutor',
+            contenido:
+              'Ahora cuénteme usted: ¿qué fue lo que pensó al elegir su respuesta? Con eso veo dónde se desvió el razonamiento.',
+          },
+        });
+      }
+    }
+
     return this.estado(tutoria.id);
   }
 
@@ -134,17 +167,13 @@ export class TutoriaService {
       },
     });
 
-    /* Written at generation time, one per option, saying why that
-       option is wrong. No model call is needed to repeat it. */
-    const explicaciones = (item.explicaciones as Record<string, string> | null) ?? {};
-    const propia = explicaciones[tutoria.opcionElegida];
-
-    const apertura = propia
-      ? `${propia}\n\n¿Ve dónde se desvió el razonamiento? Cuénteme qué parte no le cuadra y seguimos desde ahí.`
-      : `${item.justificacion}\n\n¿Qué parte no le cuadra? Dígamelo y lo vemos juntos.`;
+    /* The defence is answered by the model, because only the model
+       has read it. The stored explanation was already said when the
+       thread opened. */
+    const respuesta = await this.conversar(tutoria, item, params.defensa, params.userId);
 
     await this.prisma.tutoriaMensaje.create({
-      data: { tutoriaId: tutoria.id, autor: 'tutor', contenido: apertura },
+      data: { tutoriaId: tutoria.id, autor: 'tutor', contenido: respuesta },
     });
 
     return this.estado(tutoria.id);
@@ -178,12 +207,44 @@ export class TutoriaService {
       },
     });
 
-    const historial = tutoria.mensajes.map((m) => ({
+    const respuesta = await this.conversar(
+      tutoria,
+      item,
+      params.mensaje,
+      params.userId,
+    );
+
+    await this.prisma.tutoriaMensaje.create({
+      data: { tutoriaId: tutoria.id, autor: 'tutor', contenido: respuesta },
+    });
+
+    return this.estado(tutoria.id);
+  }
+
+  /**
+   * One exchange with the model, with the whole thread as context.
+   *
+   * Shared by the defence and by later messages: both are the learner
+   * saying something that deserves an answer written for it.
+   */
+  private async conversar(
+    tutoria: { id: string; mensajes?: Array<{ autor: string; contenido: string }>; opcionElegida: string },
+    item: {
+      pregunta: string;
+      contexto: string | null;
+      opciones: unknown;
+      respuesta_correcta: string;
+      justificacion: string;
+    },
+    mensaje: string,
+    userId: string,
+  ): Promise<string> {
+    const historial = (tutoria.mensajes ?? []).map((m) => ({
       role: 'user' as const,
       content: `${m.autor === 'tutor' ? 'TUTOR' : 'ESTUDIANTE'}: ${m.contenido}`,
     }));
 
-    const opciones = item.opciones as Record<string, string>;
+    const opciones = (item.opciones ?? {}) as Record<string, string>;
     const contexto = [
       `PREGUNTA: ${item.pregunta}`,
       item.contexto ? `CONTEXTO: ${item.contexto}` : '',
@@ -197,17 +258,16 @@ export class TutoriaService {
       .filter(Boolean)
       .join('\n\n');
 
-    let respuesta: string;
     try {
-      respuesta = await this.openai.createResponse(
+      return await this.openai.createResponse(
         [
           { role: 'developer', content: SISTEMA },
           { role: 'user', content: contexto },
           ...historial,
-          { role: 'user', content: `ESTUDIANTE: ${params.mensaje}` },
+          { role: 'user', content: `ESTUDIANTE: ${mensaje}` },
         ],
         this.config.get('OPENAI_TUTOR_MODEL') ?? 'gpt-5-mini',
-        params.userId,
+        userId,
         'tutoria',
       );
     } catch (error) {
@@ -215,15 +275,8 @@ export class TutoriaService {
          worse than none, and the learner's own message is already
          saved, so retrying continues the same thread. */
       this.log.warn(`Tutor no disponible: ${error}`);
-      respuesta =
-        'No pude responder en este momento. Intente de nuevo en un momento, o vuelva a la pregunta con lo que ya hablamos.';
+      return 'No pude responder en este momento. Intente de nuevo en un momento, o vuelva a la pregunta con lo que ya hablamos.';
     }
-
-    await this.prisma.tutoriaMensaje.create({
-      data: { tutoriaId: tutoria.id, autor: 'tutor', contenido: respuesta },
-    });
-
-    return this.estado(tutoria.id);
   }
 
   /** Marks that the learner got it right on the retry. */

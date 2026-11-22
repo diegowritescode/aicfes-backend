@@ -37,8 +37,11 @@ export class TutoriaController {
     return { ok: true, data: estado };
   }
 
-  /** The learner's own account of why they chose what they chose. */
+  /* The defence now reaches a model — it is answered by something
+     that has read it, rather than with a canned line written before
+     the learner typed anything — so it is metered like any other turn. */
   @Post(':itemId/defensa')
+  @UseGuards(CuotaGuard)
   async defensa(
     @Param('itemId') itemId: string,
     @Body() body: { defensa?: string },
@@ -65,7 +68,6 @@ export class TutoriaController {
     return { ok: true, data: estado };
   }
 
-  /* Only this one costs a model call, so only this one is metered. */
   @Post(':itemId/mensaje')
   @UseGuards(CuotaGuard)
   async mensaje(

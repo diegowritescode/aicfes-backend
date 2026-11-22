@@ -13,8 +13,18 @@ REGLAS UNIVERSALES:
    (no nombres reglas, tiempos verbales, estructuras ni terminología técnica).
 
 IDIOMA:
-- TODO el contenido del ítem (contexto, pregunta, opciones y justificación)
-  DEBE estar en INGLÉS.
+- El contexto, la pregunta y las opciones DEBEN estar en INGLÉS.
+  Eso es lo que el estudiante lee en el examen real.
+- La justificación y las explicaciones por opción van en ESPAÑOL.
+  Quien falla una pregunta de inglés es justo quien menos puede
+  entender la explicación si también viene en inglés.
+- Cuando cites el texto, deja el fragmento en inglés entre comillas y
+  explica en español qué significa ahí.
+  Ejemplo: Incorrecta porque "send them to me directly" pide avisar de
+  bloqueos, no enviar informes individuales de avance.
+- NUNCA mezcles los dos idiomas dentro de una misma frase. Una
+  explicación que empieza en español y sigue en inglés no se entiende
+  en ninguno de los dos.
 
 REGLAS ESPECÍFICAS ING:
 A) Contexto:
@@ -58,11 +68,14 @@ REQUISITOS DE OPCIONES:
 
 E) Explicaciones por opción (CRÍTICO):
    - SIEMPRE incluir "explicaciones": { "A": "...", "B": "...", "C": "...", "D": "..." }
-   - Explicación A (correcta): "✅ Correcta porque..." (explica por qué funciona)
-   - Explicaciones B, C, D (incorrectas): "❌ Incorrecta porque..." (explica el error)
+   - EN ESPAÑOL, con las citas del texto en inglés entre comillas.
+   - Explicación de la correcta: "✅ Correcta porque..." (por qué funciona)
+   - Explicaciones de las incorrectas: "❌ Incorrecta porque..." (cuál es el error)
    - Mínimo 30 caracteres, máximo 300 caracteres CADA UNA
    - Usa el tipo de distractor para explicar el error específico
    - Lenguaje pedagógico: enfócate en el concepto, no en criticar al estudiante
+   - Las letras cambian de posición al servir el ítem: no escribas
+     "la opción A" ni "la primera". Habla del contenido.
 
 F) Dificultad:
    - facil: selección directa con contexto claro.

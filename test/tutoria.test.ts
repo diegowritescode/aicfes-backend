@@ -40,7 +40,12 @@ function servicio(opciones: {
         defensa: (opciones.tutoria as { defensa?: string } | null)?.defensa ?? null,
         mensajes: creados,
       }),
-      upsert: async () => ({ id: 't1', mensajes: [] }),
+      upsert: async () => ({
+        id: 't1',
+        itemId: 'i1',
+        opcionElegida: (opciones.tutoria as { opcionElegida?: string } | null)?.opcionElegida ?? 'B',
+        mensajes: creados.length ? creados : [],
+      }),
       update: async () => ({}),
     },
     tutoriaMensaje: {
@@ -79,7 +84,7 @@ test('el tutor tiene prohibido dar la letra, de forma explícita', () => {
   assert.match(fuente, /NO SE LA DIGAS/);
 });
 
-test('la primera respuesta no llama a ningún modelo', async () => {
+test('la apertura no llama a ningún modelo', async () => {
   // It is already written: one explanation per option, produced when
   // the item was generated.
   let llamadas = 0;
@@ -92,15 +97,11 @@ test('la primera respuesta no llama a ningún modelo', async () => {
     },
   });
 
-  const estado = await svc.defender({
-    userId: 'u1',
-    itemId: 'i1',
-    defensa: 'Multipliqué 4 por 3.',
-  });
+  const estado = await svc.abrir({ userId: 'u1', itemId: 'i1', opcionElegida: 'B' });
 
-  assert.equal(llamadas, 0, 'la apertura no debe costar una petición');
+  assert.equal(llamadas, 0, 'abrir la tutoría no debe costar una petición');
   const tutor = estado!.mensajes.filter((m) => m.autor === 'tutor');
-  assert.equal(tutor.length, 1);
+  assert.ok(tutor.length >= 1);
   assert.match(tutor[0].contenido, /olvidó dividir/);
 });
 
@@ -109,21 +110,53 @@ test('la apertura usa la explicación de la opción que eligió', async () => {
     tutoria: { id: 't1', itemId: 'i1', opcionElegida: 'B', mensajes: [] },
     item,
   });
-  const estado = await svc.defender({ userId: 'u1', itemId: 'i1', defensa: 'Porque sí.' });
+  const estado = await svc.abrir({ userId: 'u1', itemId: 'i1', opcionElegida: 'B' });
   const tutor = estado!.mensajes.find((m) => m.autor === 'tutor')!;
   // B's explanation, not A's and not the generic justification.
   assert.match(tutor.contenido, /olvidó dividir/);
   assert.ok(!tutor.contenido.includes('✅'), 'no se filtra la de la correcta');
 });
 
-test('sin explicación propia cae en la justificación general', async () => {
+test('la apertura pide el razonamiento del estudiante', async () => {
+  // Without an explicit invitation the learner does not know whether
+  // to restate their reasoning or just leave.
   const svc = servicio({
-    tutoria: { id: 't1', itemId: 'i1', opcionElegida: 'D', mensajes: [] },
+    tutoria: { id: 't1', itemId: 'i1', opcionElegida: 'B', mensajes: [] },
     item,
   });
-  const estado = await svc.defender({ userId: 'u1', itemId: 'i1', defensa: 'Tanteé.' });
-  const tutor = estado!.mensajes.find((m) => m.autor === 'tutor')!;
-  assert.match(tutor.contenido, /base por altura sobre dos/);
+  const estado = await svc.abrir({ userId: 'u1', itemId: 'i1', opcionElegida: 'B' });
+  const texto = estado!.mensajes.map((m) => m.contenido).join(' ');
+  assert.match(texto, /qué fue lo que pensó/);
+});
+
+test('la defensa la responde el modelo, no una frase guardada', async () => {
+  // The canned line was written when the item was generated, so it
+  // cannot address what the learner just typed. Answering with it read
+  // as a non-sequitur.
+  let vioLaDefensa = false;
+  const svc = servicio({
+    tutoria: {
+      id: 't1',
+      itemId: 'i1',
+      opcionElegida: 'B',
+      mensajes: [{ autor: 'tutor', contenido: 'explicación', createdAt: new Date() }],
+    },
+    item,
+    alResponder: (mensajes) => {
+      vioLaDefensa = JSON.stringify(mensajes).includes('Multipliqué 4 por 3');
+      return 'Eso mismo: le faltó dividir entre dos.';
+    },
+  });
+
+  const estado = await svc.defender({
+    userId: 'u1',
+    itemId: 'i1',
+    defensa: 'Multipliqué 4 por 3.',
+  });
+
+  assert.ok(vioLaDefensa, 'el modelo debe recibir lo que el estudiante escribió');
+  const ultimo = estado!.mensajes[estado!.mensajes.length - 1];
+  assert.match(ultimo.contenido, /le faltó dividir/);
 });
 
 test('se guarda la defensa del estudiante', async () => {
