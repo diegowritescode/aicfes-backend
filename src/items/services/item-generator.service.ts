@@ -283,12 +283,30 @@ ${normErr.message}`;
           lastParseError = `Expected ${n} items but got ${validatedItems.length}`;
           console.warn(`[${requestId}] ${lastParseError}`);
           if (attempt >= maxRetries) {
-            // Después de reintentos, si aún no tenemos la cantidad exacta, retornar error
+            /* Hand back what did pass rather than nothing.
+
+               Asking for three and getting two is the normal outcome
+               when an item is a duplicate of one already in the bank,
+               or when the cross-model verifier refuses to confirm its
+               answer — both are the quality checks working. Throwing
+               away the two good items in that case means the learner
+               is told "no se pudo generar" while we have already paid
+               for, and verified, two perfectly usable questions.
+
+               The caller is told how many it actually got; a practice
+               session of two questions is worth far more than an
+               error. */
+            console.log(
+              `[${requestId}] Devolviendo ${validatedItems.length} de ${n} ítems pedidos`,
+            );
+            const parciales = validatedItems.map((item) =>
+              this.randomizeCorrectAnswerPosition(item),
+            );
             return {
-              items: [],
+              items: parciales,
               rawModelOutput: respText,
-              parseStatus: 'FAIL',
-              parseError: lastParseError,
+              parseStatus: 'OK',
+              parseError: `Se pidieron ${n} ítems y se entregaron ${validatedItems.length}.`,
             };
           }
           // Reintento con mensaje correctivo DETALLADO
