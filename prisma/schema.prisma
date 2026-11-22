@@ -354,7 +354,15 @@ model ItemReferencia {
   numero     Int      /// its number in that booklet
   area       Area
   enunciado  String   @db.Text
+  /// The shared passage, table or data the question asks about. ICFES
+  /// prints one text above several questions, and without it a stem
+  /// like "la palabra hurtaban puede sustituirse por" cannot be
+  /// answered or imitated.
+  contexto   String?  @db.Text
   opciones   Json
+  /// True when the stimulus is a picture the extractor could not read,
+  /// so the item is known to be incomplete rather than quietly wrong.
+  necesitaFigura Boolean @default(false)
   /// Hash of the normalised stem, so re-running the extractor is safe.
   hash       String   @unique
   embedding  Unsupported("vector(1536)")?

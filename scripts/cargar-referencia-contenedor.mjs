@@ -44,7 +44,10 @@ async function main() {
   const prisma = new PrismaClient();
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-  const todos = JSON.parse(readFileSync(ruta, 'utf-8'));
+  const crudo = readFileSync(ruta, 'utf-8');
+  const todos = ruta.endsWith('.jsonl')
+    ? crudo.trim().split('\n').filter(Boolean).map((l) => JSON.parse(l))
+    : JSON.parse(crudo);
   const conArea = todos.filter((i) => i.area);
   const items = limiteArg ? conArea.slice(0, Number(limiteArg)) : conArea;
 
@@ -71,7 +74,12 @@ async function main() {
         })
       ).map((r) => r.hash),
     );
-    const nuevos = conHash.filter((c) => !existentes.has(c.hash));
+    /* An item already in the table may still be missing the context
+       this run adds, so a hash match is only a reason to skip when
+       there is no context to contribute. */
+    const nuevos = conHash.filter(
+      (c) => !existentes.has(c.hash) || c.item.contexto,
+    );
     saltados += conHash.length - nuevos.length;
     if (nuevos.length === 0) continue;
 
@@ -97,9 +105,11 @@ async function main() {
       }
       try {
         await prisma.$executeRawUnsafe(
-          `INSERT INTO "ItemReferencia" (id, fuente, numero, area, enunciado, opciones, hash, embedding, "createdAt")
-           VALUES (gen_random_uuid()::text, $1, $2, $3::"Area", $4, $5::jsonb, $6, $7::vector, now())
-           ON CONFLICT (hash) DO NOTHING`,
+          `INSERT INTO "ItemReferencia" (id, fuente, numero, area, enunciado, opciones, hash, embedding, "createdAt", contexto, "necesitaFigura")
+           VALUES (gen_random_uuid()::text, $1, $2, $3::"Area", $4, $5::jsonb, $6, $7::vector, now(), $8, $9)
+           ON CONFLICT (hash) DO UPDATE
+             SET contexto = EXCLUDED.contexto,
+                 "necesitaFigura" = EXCLUDED."necesitaFigura"`,
           item.fuente,
           item.numero,
           item.area,
@@ -107,6 +117,8 @@ async function main() {
           JSON.stringify(item.opciones),
           hash,
           `[${vector.join(',')}]`,
+          item.contexto || null,
+          Boolean(item.necesitaFigura),
         );
         creados += 1;
       } catch (error) {
