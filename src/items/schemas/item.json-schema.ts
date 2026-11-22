@@ -23,7 +23,7 @@ const letterMap = (description: string) => ({
   additionalProperties: false,
 });
 
-import { FIGURA_JSON_SCHEMA } from '../../figuras/registro';
+import { FIGURA_JSON_SCHEMA } from '../../figuras/figura.json-schema';
 
 export const ITEM_JSON_SCHEMA = {
   type: 'object',
@@ -47,7 +47,13 @@ export const ITEM_JSON_SCHEMA = {
     explicaciones: letterMap('Por qué esa opción es correcta o incorrecta (30 a 300 caracteres)'),
     // Strict mode requires every property in `required`, so the figure
     // is made optional by allowing null rather than by omitting it.
-    figura: { anyOf: [FIGURA_JSON_SCHEMA, { type: 'null' }] },
+    // FIGURA_JSON_SCHEMA is itself an anyOf over the six templates, so
+    // the null branch joins that union rather than wrapping it: an
+    // anyOf whose only member is another anyOf is not valid here.
+    figura: {
+      description: FIGURA_JSON_SCHEMA.description,
+      anyOf: [...FIGURA_JSON_SCHEMA.anyOf, { type: 'null' }],
+    },
   },
   required: [
     'area',

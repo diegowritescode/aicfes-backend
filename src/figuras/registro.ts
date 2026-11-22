@@ -77,30 +77,3 @@ export function describirFigura(spec: FiguraSpec): string {
   return spec.alt ?? plantilla.describir(spec.parametros);
 }
 
-/**
- * The schema fragment the model is constrained to.
- *
- * `parametros` is left open: each template validates its own, and a
- * union of six parameter shapes in strict mode would be unreadable
- * for little gain. The name, which is what the model gets wrong, is
- * an enum and cannot be invented.
- */
-export const FIGURA_JSON_SCHEMA = {
-  type: 'object',
-  description:
-    'Figura que acompaña al ítem. Inclúyela SOLO si la pregunta no se puede responder sin ella.',
-  properties: {
-    plantilla: {
-      type: 'string',
-      enum: IDS_PLANTILLA,
-      description: IDS_PLANTILLA.map((id) => `${id}: ${DESCRIPCIONES[id]}`).join(' | '),
-    },
-    parametros: {
-      type: 'object',
-      description: 'Los valores de la figura. Deben coincidir con los datos del enunciado.',
-      additionalProperties: true,
-    },
-  },
-  required: ['plantilla', 'parametros'],
-  additionalProperties: false,
-} as const;

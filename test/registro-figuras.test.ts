@@ -1,17 +1,24 @@
 import { test } from 'node:test';
 import * as assert from 'node:assert/strict';
 import {
-  FIGURA_JSON_SCHEMA,
   IDS_PLANTILLA,
   describirFigura,
   dibujarFigura,
   validarFigura,
 } from '../src/figuras/registro';
+import { FIGURA_JSON_SCHEMA } from '../src/figuras/figura.json-schema';
+
+/** The schema is a union now, one branch per template. */
+const ramas = FIGURA_JSON_SCHEMA.anyOf as unknown as ReadonlyArray<{
+  description?: string;
+  properties: { plantilla: { enum: readonly string[] } };
+}>;
+const nombresOfrecidos = ramas.map((r) => r.properties.plantilla.enum[0]);
 
 test('every template is reachable by name', () => {
   assert.equal(IDS_PLANTILLA.length, 6);
   for (const id of IDS_PLANTILLA) {
-    assert.ok(FIGURA_JSON_SCHEMA.properties.plantilla.enum.includes(id), `${id} offered`);
+    assert.ok(nombresOfrecidos.includes(id), `${id} offered`);
   }
 });
 
@@ -51,12 +58,18 @@ test('an explicit alt text overrides the generated one', () => {
 });
 
 test('the schema tells the model what each template is for', () => {
-  const texto = FIGURA_JSON_SCHEMA.properties.plantilla.description;
+  // The description moved onto each branch when the schema became a
+  // union: a template now carries its own, beside its parameters.
   for (const id of IDS_PLANTILLA) {
-    assert.ok(texto.includes(id), `${id} is described`);
+    const rama = ramas.find((r) => r.properties.plantilla.enum[0] === id);
+    assert.ok(rama, `${id} has a branch`);
+    assert.ok(rama!.description && rama!.description.length > 20, `${id} is described`);
   }
   // The ladder is the case most likely to be asked for by another name.
-  assert.match(texto, /escaleras/);
+  const triangulo = ramas.find(
+    (r) => r.properties.plantilla.enum[0] === 'trianguloRectangulo',
+  );
+  assert.match(triangulo!.description!, /escaleras/);
 });
 
 test('rejects a spec that is not an object at all', () => {
