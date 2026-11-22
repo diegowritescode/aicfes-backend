@@ -160,7 +160,7 @@ Nada de esto *usa* el perfil todavía. Queda:
 
 - Que las misiones diarias salgan de las debilidades en vez de la lista
   fija de cinco.
-- Que contrarreloj sortee con sesgo hacia lo flojo.
+- ~~Que contrarreloj sortee con sesgo hacia lo flojo.~~ Hecho.
 - "El error del día".
 - Que el plan del feedback deje de ser genérico.
 
@@ -287,9 +287,14 @@ estudiante ya falló. Treinta segundos. Es el hábito más barato de
 sostener y es exactamente lo que el ICFES premia: no repetir tu propio
 error. Depende de la sección 2.
 
-**Contrarreloj con progresión real.** Hoy los tres modos dan 60s por
-pregunta, así que no hay progresión ni presión: el examen real da ~64s.
-Debería escalar 90s → 64s → 45s, con nombres que signifiquen algo.
+**Contrarreloj con progresión real** — **hecho** (nov 2026). Los tres
+modos viejos daban 60s por pregunta cada uno, así que no había
+escalera: el examen real da 64s, con lo que el modo más duro era más
+fácil que el examen. Ahora son cinco niveles anclados a ese número —
+Calentamiento 90s, Ritmo real 64s, Bajo presión 45s, Muerte súbita
+30s, Las cinco áreas 64s — y ninguno fija un área: todos preguntan al
+perfil de debilidades. Verificado en producción: un usuario que falló
+Matemáticas recibió 7 preguntas de Matemáticas.
 
 ### No vale la pena
 
@@ -322,8 +327,9 @@ gratuita de forma recurrente. Eso es demanda; lo demás es suponer.
 
 ## Orden sugerido
 
-1. ~~**Perfil de debilidades**~~ — hecho (nov 2026). Falta usarlo.
-2. **Contrarreloj rediseñado**, sorteando desde las debilidades.
+1. ~~**Perfil de debilidades**~~ — hecho (nov 2026).
+2. ~~**Contrarreloj rediseñado**~~ — hecho (nov 2026). Primer consumidor
+   del perfil.
 3. **Modal de tutoría** — ahora sí tiene de dónde sacar el contexto.
 4. **"El error del día" y racha con perdón** — dependen de 2.
 5. **Duelos** — cuando haya usuarios que duelar.
