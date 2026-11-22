@@ -26,7 +26,26 @@ mañana. El contenido ya está resuelto; el hábito no.
 
 ---
 
-## 1. El modal de tutoría (prioridad alta)
+## 1. El modal de tutoría — **backend hecho** (nov 2026)
+
+La API está en producción y probada. Falta la interfaz.
+
+**Endpoints** (todos bajo sesión):
+`POST /api/tutoria/:itemId/abrir`, `/defensa`, `/mensaje`, `/resuelto`,
+`GET /api/tutoria/:itemId`.
+
+**Medido en producción, no estimado:**
+- La apertura tarda **1 segundo y cuesta 0**: usa la explicación por
+  opción que el ítem ya traía.
+- Un turno de conversación cuesta **USD 0.0018**.
+- Probado contra el estudiante que pide la respuesta directamente y
+  contra el que finge rendirse. En ambos se negó y siguió guiando con
+  preguntas.
+
+**Lo que falta:** el modal en el frontend, y conectar el reintento de
+la misma pregunta.
+
+### Diseño original
 
 ### Qué es
 
@@ -330,7 +349,7 @@ gratuita de forma recurrente. Eso es demanda; lo demás es suponer.
 1. ~~**Perfil de debilidades**~~ — hecho (nov 2026).
 2. ~~**Contrarreloj rediseñado**~~ — hecho (nov 2026). Primer consumidor
    del perfil.
-3. **Modal de tutoría** — ahora sí tiene de dónde sacar el contexto.
+3. ~~**Modal de tutoría**~~ — backend hecho (nov 2026). Falta la interfaz.
 4. **"El error del día" y racha con perdón** — dependen de 2.
 5. **Duelos** — cuando haya usuarios que duelar.
 6. **Overlay** — proyecto aparte, con su propio plan legal.
@@ -356,5 +375,10 @@ Para no reconstruirlo por olvido:
   salen los números de este documento.
 - **Perfil de debilidades por tema y tipo de error**, alimentado desde
   cada respuesta.
+- **Tutoría por pregunta fallada**, con la defensa del estudiante
+  guardada y el hilo conservado entre intentos.
+- **Gasto atribuido a cada usuario**, que es lo que hace que la cuota
+  diaria limite de verdad. Durante un tiempo no lo hacía: 55 registros
+  de costo sin dueño y una cuota que leía cero para todos.
 - **Calidad de ítem medida con respuestas reales**, que es lo que
   distingue una pregunta difícil de una mal escrita.
