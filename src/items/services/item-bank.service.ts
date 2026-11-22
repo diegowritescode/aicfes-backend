@@ -164,6 +164,57 @@ export class ItemBankService {
     });
     return rows.map((r) => ({ area: String(r.area), count: r._count._all }));
   }
-}
 
-export default ItemBankService;
+  /**
+   * How many verified items each area can supply, and the largest
+   * sitting that can be drawn from them right now.
+   *
+   * Only verified items are drawable, so this is the number that
+   * decides whether a simulacro can start. A sitting refuses to start
+   * short — one missing an area would report a score that cannot be
+   * compared to a real one — so until this existed the only way to
+   * find out was to try starting one and read the 400.
+   */
+  async inventario(): Promise<{
+    porArea: Array<{ area: string; verificados: number; paraExamenCompleto: number }>;
+    total: number;
+    simulacroMaximo: number;
+  }> {
+    const filas = await this.prisma.generatedItem.groupBy({
+      by: ['area'],
+      _count: { _all: true },
+      where: { verified: true },
+    });
+
+    const verificados: Record<string, number> = {};
+    for (const fila of filas) verificados[String(fila.area)] = fila._count._all;
+
+    /* The real exam's shape. A shorter sitting scales these
+       proportions, so the largest one the bank can fill is bounded by
+       whichever area runs out first. */
+    const EXAMEN: Record<string, number> = { LC: 41, MAT: 50, SOC: 50, CN: 58, ING: 55 };
+    const TOTAL = Object.values(EXAMEN).reduce((s, n) => s + n, 0);
+
+    let simulacroMaximo = 0;
+    for (let n = TOTAL; n >= 5; n -= 1) {
+      const alcanza = Object.entries(EXAMEN).every(([area, preguntas]) => {
+        const necesita = Math.max(1, Math.floor((preguntas * n) / TOTAL));
+        return (verificados[area] ?? 0) >= necesita;
+      });
+      if (alcanza) {
+        simulacroMaximo = n;
+        break;
+      }
+    }
+
+    return {
+      porArea: (['LC', 'MAT', 'SOC', 'CN', 'ING'] as const).map((area) => ({
+        area,
+        verificados: verificados[area] ?? 0,
+        paraExamenCompleto: EXAMEN[area],
+      })),
+      total: Object.values(verificados).reduce((s, n) => s + n, 0),
+      simulacroMaximo,
+    };
+  }
+}

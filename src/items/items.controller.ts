@@ -569,6 +569,26 @@ export class ItemsController {
   }
 
   /**
+   * GET /api/items/bank/stats
+   *
+   * How many verified items each area can supply.
+   *
+   * Only verified items can be drawn, so this is the number that
+   * decides whether a simulacro can start — and a sitting refuses to
+   * start short, because one missing an area would report a score that
+   * cannot be compared to a real one. Until now the only way to find
+   * out was to try starting one and read the 400.
+   *
+   * It also reports the largest sitting the bank can currently fill,
+   * which is the question anyone actually has.
+   */
+  @Get('bank/stats')
+  @ApiOperation({ summary: 'Verified items per area, and the largest sitting they can fill' })
+  async bankStats() {
+    return { ok: true, data: await this.bank.inventario() };
+  }
+
+  /**
    * GET /api/items
    * Lista ítems generados con filtros opcionales
    */

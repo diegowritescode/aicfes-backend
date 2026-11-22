@@ -21,7 +21,7 @@ import { CostosService } from './costos.service';
  * trickling back in a way nobody can predict.
  */
 
-export type Plan = 'gratis' | 'pago';
+export type Plan = 'gratis' | 'pago' | 'semilla';
 
 export interface EstadoCuota {
   readonly permitido: boolean;
@@ -52,8 +52,31 @@ export class CuotaService {
        and a script does so within seconds. */
     const gratis = Number(this.config.get('CUOTA_DIARIA_GRATIS_USD') ?? 0.25);
     const pago = Number(this.config.get('CUOTA_DIARIA_PAGO_USD') ?? 3.0);
-    const valor = plan === 'pago' ? pago : gratis;
+    const semilla = Number(this.config.get('CUOTA_DIARIA_SEMILLA_USD') ?? 10.0);
+    const valor = plan === 'semilla' ? semilla : plan === 'pago' ? pago : gratis;
     return Number.isFinite(valor) && valor > 0 ? valor : 0.25;
+  }
+
+  /**
+   * Whether this account is stocking the bank rather than studying.
+   *
+   * The bank has to be filled before anyone can sit a simulacro, and
+   * filling it is a few hundred items in an afternoon — which is
+   * exactly the shape the free cap exists to stop. Rather than weaken
+   * that cap, or add a flag to the database that could be set by
+   * mistake, the accounts allowed to do it are named in the
+   * environment: a short list, set on the server, visible in the
+   * config, and empty unless someone deliberately writes it.
+   *
+   * It raises the ceiling. It does not remove it: a runaway script on
+   * a seeding account still stops, just later.
+   */
+  private esSemilla(userId: string): boolean {
+    const lista = String(this.config.get('USUARIOS_SEMILLA') ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    return lista.includes(userId);
   }
 
   private inicioDelDia(ahora = new Date()): Date {
@@ -116,7 +139,8 @@ export class CuotaService {
     preguntas: number,
     plan: Plan = 'gratis',
   ): Promise<EstadoCuota> {
-    const estado = await this.estado(userId, plan);
+    const efectivo = this.esSemilla(userId) ? 'semilla' : plan;
+    const estado = await this.estado(userId, efectivo);
     if (!estado.permitido) return estado;
 
     /* A request big enough to blow through the whole allowance at once

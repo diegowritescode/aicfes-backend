@@ -16,6 +16,8 @@ function servicio(opciones: {
   topeGratis?: number;
   costoPregunta?: number;
   falla?: boolean;
+  usuariosSemilla?: string;
+  topeSemilla?: number;
 }): CuotaService {
   const costos = {
     costoUsuario: async () => {
@@ -27,6 +29,8 @@ function servicio(opciones: {
     get: (clave: string) => {
       if (clave === 'CUOTA_DIARIA_GRATIS_USD') return opciones.topeGratis ?? 0.25;
       if (clave === 'COSTO_ESTIMADO_PREGUNTA_USD') return opciones.costoPregunta ?? 0.009;
+      if (clave === 'USUARIOS_SEMILLA') return opciones.usuariosSemilla;
+      if (clave === 'CUOTA_DIARIA_SEMILLA_USD') return opciones.topeSemilla ?? 10;
       return undefined;
     },
   };
@@ -141,4 +145,49 @@ test('el guard no se interpone cuando no hay usuario', async () => {
   // not swallow it with a confusing quota error.
   const guard = new CuotaGuard(servicio({ gastado: 999 }));
   assert.equal(await guard.canActivate(contexto({ body: { n: 1 } })), true);
+});
+
+/* ── La cuenta semilla ─────────────────────────────────────────────
+   The bank has to be stocked before anyone can sit a simulacro, and
+   stocking it is a few hundred items — the exact shape the free cap
+   exists to stop. The accounts allowed to do it are named in the
+   environment, so the list is empty unless someone writes it. */
+
+test('sin la variable puesta, nadie es semilla', async () => {
+  // The default has to be the strict one: a misconfiguration should
+  // lose the privilege, never grant it.
+  const svc = servicio({ gastado: 0.30 });
+  const estado = await svc.puedeGenerar('u1', 1);
+  assert.equal(estado.permitido, false);
+  assert.equal(estado.plan, 'gratis');
+});
+
+test('una cuenta semilla tiene un tope más alto', async () => {
+  const svc = servicio({ gastado: 0.30, usuariosSemilla: 'u1,u2' });
+  const estado = await svc.puedeGenerar('u1', 1);
+  assert.equal(estado.permitido, true);
+  assert.equal(estado.plan, 'semilla');
+  assert.equal(estado.tope, 10);
+});
+
+test('la cuenta semilla también tiene techo', async () => {
+  // Raised, not removed: a runaway script on a seeding account still
+  // stops, just later.
+  const svc = servicio({ gastado: 12, usuariosSemilla: 'u1' });
+  const estado = await svc.puedeGenerar('u1', 1);
+  assert.equal(estado.permitido, false);
+});
+
+test('estar en la lista no cubre a los demás', async () => {
+  const svc = servicio({ gastado: 0.30, usuariosSemilla: 'u1' });
+  const otro = await svc.puedeGenerar('u2', 1);
+  assert.equal(otro.permitido, false);
+  assert.equal(otro.plan, 'gratis');
+});
+
+test('un id parcial no cuela como semilla', async () => {
+  // Substring matching would make "u1" grant "u10" the raised cap.
+  const svc = servicio({ gastado: 0.30, usuariosSemilla: 'u1' });
+  const estado = await svc.puedeGenerar('u10', 1);
+  assert.equal(estado.permitido, false);
 });
