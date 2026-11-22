@@ -114,9 +114,17 @@ model TimeTrialMode {
   description     String
   timeLimitSeconds Int
   questions       Int
+  /// Null means "aim at whatever this learner is weakest in", which is
+  /// the point of having a weakness profile at all.
   area            Area?
   dificultad      Dificultad?
   mix             Json?
+  /// Where this sits in the ladder, so the interface can show how far
+  /// along someone is instead of a flat list.
+  nivel           Int      @default(1)
+  /// Derived, but stored so the interface can show the pace without
+  /// dividing, and so a mode cannot drift from what it claims.
+  segundosPorPregunta Int  @default(64)
   enabled         Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

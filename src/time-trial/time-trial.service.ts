@@ -5,41 +5,8 @@ import { PersistenceService } from '../persistence/persistence.service';
 import { nanoid } from 'nanoid';
 import { DashboardService } from '../dashboard/dashboard.service';
 import { Area, Dificultad } from '@prisma/client';
-
-const DEFAULT_MODES = [
-  {
-    id: 'sprint_10',
-    title: 'Sprint 10',
-    description: '10 preguntas mixtas en 10 minutos',
-    timeLimitSeconds: 600,
-    questions: 10,
-    mix: [
-      { area: 'MAT', dificultad: 'media', n: 2 },
-      { area: 'LC', dificultad: 'media', n: 3 },
-      { area: 'CN', dificultad: 'media', n: 2 },
-      { area: 'SOC', dificultad: 'media', n: 2 },
-      { area: 'ING', dificultad: 'media', n: 1 },
-    ],
-  },
-  {
-    id: 'reto_5',
-    title: 'Reto 5',
-    description: '5 preguntas de area objetivo en 5 minutos',
-    timeLimitSeconds: 300,
-    questions: 5,
-    area: 'MAT',
-    dificultad: 'media',
-  },
-  {
-    id: 'explosivo',
-    title: 'Explosivo',
-    description: '3 preguntas dificiles en 3 minutos',
-    timeLimitSeconds: 180,
-    questions: 3,
-    area: 'LC',
-    dificultad: 'alta',
-  },
-];
+import { MODOS, MODOS_RETIRADOS } from './modos';
+import { DebilidadesService } from '../calidad/debilidades.service';
 
 @Injectable()
 export class TimeTrialService {
@@ -48,42 +15,47 @@ export class TimeTrialService {
     private generator: ItemGeneratorService,
     private persistence: PersistenceService,
     private dashboardService: DashboardService,
+    private debilidades: DebilidadesService,
   ) {}
 
   async listModes() {
     await this.ensureDefaultModes();
-    return this.prisma.timeTrialMode.findMany({ where: { enabled: true } });
+    return this.prisma.timeTrialMode.findMany({
+      where: { enabled: true },
+      orderBy: [{ nivel: 'asc' }, { segundosPorPregunta: 'desc' }],
+    });
   }
 
   private async ensureDefaultModes() {
     await Promise.all(
-      DEFAULT_MODES.map((mode) =>
-        this.prisma.timeTrialMode.upsert({
-          where: { id: mode.id },
-          update: {
-            title: mode.title,
-            description: mode.description,
-            timeLimitSeconds: mode.timeLimitSeconds,
-            questions: mode.questions,
-            area: (mode.area as Area) || null,
-            dificultad: (mode.dificultad as Dificultad) || null,
-            mix: (mode as any).mix || null,
-            enabled: true,
-          },
-          create: {
-            id: mode.id,
-            title: mode.title,
-            description: mode.description,
-            timeLimitSeconds: mode.timeLimitSeconds,
-            questions: mode.questions,
-            area: (mode.area as Area) || null,
-            dificultad: (mode.dificultad as Dificultad) || null,
-            mix: (mode as any).mix || null,
-            enabled: true,
-          },
-        }),
-      ),
+      MODOS.map((modo) => {
+        const campos = {
+          title: modo.title,
+          description: modo.description,
+          timeLimitSeconds: modo.timeLimitSeconds,
+          questions: modo.questions,
+          area: (modo.area as Area) || null,
+          dificultad: (modo.dificultad as Dificultad) || null,
+          mix: modo.mix ? (modo.mix as unknown as object) : undefined,
+          nivel: modo.nivel,
+          segundosPorPregunta: modo.segundosPorPregunta,
+          enabled: true,
+        };
+        return this.prisma.timeTrialMode.upsert({
+          where: { id: modo.id },
+          update: campos,
+          create: { id: modo.id, ...campos },
+        });
+      }),
     );
+
+    /* Disabled rather than deleted: a finished session still points at
+       the mode it was played under, and deleting it would orphan the
+       learner's own history. */
+    await this.prisma.timeTrialMode.updateMany({
+      where: { id: { in: MODOS_RETIRADOS } },
+      data: { enabled: false },
+    });
   }
 
   private async generateForSection(section: {
@@ -123,7 +95,7 @@ export class TimeTrialService {
       return { items: [], requestId, error: result.parseError || 'No valid items generated' };
     }
 
-    await this.persistence.saveGeneratedItems({
+    const guardados = await this.persistence.saveGeneratedItems({
       requestId,
       items: result.items,
       rawModelOutput: result.rawModelOutput,
@@ -131,7 +103,11 @@ export class TimeTrialService {
       parseError: result.parseError,
     });
 
-    return { items: result.items, requestId };
+    /* Without the stored id the client cannot say which item it
+       answered, so every contrarreloj answer was invisible to both the
+       weakness profile and the item-quality numbers. */
+    const conId = result.items.map((item, i) => ({ ...item, id: guardados[i]?.id }));
+    return { items: conId, requestId };
   }
 
   async startTimeTrial(params: {
@@ -186,11 +162,28 @@ export class TimeTrialService {
           items.push(...result.items);
         }
       }
-    } else if (area && dificultad) {
-      const result = await this.generateForSection({ area, dificultad, n: questions });
+    } else {
+      /* A mode that names no area aims at whatever this learner is
+         weakest in. Drilling someone on what they already know is the
+         most common way study time gets wasted, and the profile exists
+         precisely to answer this question.
+
+         A learner with too little history has no weakest area yet, so
+         it falls back to the mode's own area, then to Matemáticas. */
+      const objetivo =
+        area ?? (await this.areaDebil(params.userId)) ?? 'MAT';
+      const nivel = dificultad ?? 'media';
+      const result = await this.generateForSection({
+        area: objetivo,
+        dificultad: nivel,
+        n: questions,
+        tema: await this.temaDebil(params.userId, objetivo as Area),
+      });
       if (result.items.length > 0) {
         items.push(...result.items);
       }
+      area = objetivo;
+      dificultad = nivel;
     }
 
     const session = await this.dashboardService.startTimeTrialSession({
@@ -211,5 +204,31 @@ export class TimeTrialService {
         items,
       },
     };
+  }
+
+  /** The area this learner is weakest in, or null if we cannot tell. */
+  private async areaDebil(userId: string): Promise<string | null> {
+    try {
+      return await this.debilidades.areaPrioritaria(userId);
+    } catch {
+      // A profile lookup must never stop someone from practising.
+      return null;
+    }
+  }
+
+  /**
+   * The topic worth drilling inside that area.
+   *
+   * Returns undefined when the profile has too little to go on, which
+   * leaves the generator free to pick — better than narrowing a new
+   * learner onto a topic chosen from three answers.
+   */
+  private async temaDebil(userId: string, area: Area): Promise<string | undefined> {
+    try {
+      const temas = await this.debilidades.temasDebiles(userId, 1, area);
+      return temas[0]?.tema.replace(/-/g, ' ');
+    } catch {
+      return undefined;
+    }
   }
 }
