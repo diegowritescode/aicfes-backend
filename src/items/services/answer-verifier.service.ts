@@ -75,7 +75,7 @@ export class AnswerVerifierService {
     return this.config.get('VERIFY_ANSWERS', 'true') !== 'false';
   }
 
-  async verify(item: Item): Promise<VerificationResult> {
+  async verify(item: Item, userId?: string | null): Promise<VerificationResult> {
     if (!this.enabled) {
       return { accepted: true, reason: 'verification disabled' };
     }
@@ -117,6 +117,7 @@ export class AnswerVerifierService {
         ],
         { schema: VERDICT_SCHEMA as unknown as Record<string, unknown>, schemaName: 'veredicto' },
         this.config.get('OPENAI_VERIFIER_MODEL') ?? 'gpt-5',
+        userId,
       );
     } catch (error) {
       // A verifier that cannot be reached must not silently approve.

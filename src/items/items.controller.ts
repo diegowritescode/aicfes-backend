@@ -221,7 +221,8 @@ export class ItemsController {
           plantilla: parsed.data.plantilla,
           n,
         },
-        requestId
+        requestId,
+        this.getUserId(req),
       );
 
       console.log(
@@ -484,6 +485,7 @@ export class ItemsController {
             n: section.n,
           },
           sectionRequestId,
+          this.getUserId(req),
         );
 
         if (result.items.length === 0) {

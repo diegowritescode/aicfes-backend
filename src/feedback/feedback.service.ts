@@ -144,6 +144,7 @@ ${JSON.stringify(data)}
     const responseText = await this.openai.createResponse(
       [{ role: 'user', content: prompt }],
       model,
+      userId,
     );
 
     const parsedJson = extractFirstJson(responseText);

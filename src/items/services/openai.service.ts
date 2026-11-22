@@ -36,6 +36,10 @@ export class OpenaiService {
   async createResponse(
     messages: Array<{ role: 'developer' | 'user'; content: string }>,
     overrideModel?: string,
+    /** Whose request this is. Without it the spend has no owner, and a
+     *  per-user quota reading unowned rows always sees zero. */
+    userId?: string | null,
+    operacion: Operacion = 'retroalimentacion',
   ): Promise<string> {
     const model = overrideModel || this.config.get('OPENAI_MODEL') || 'gpt-5-mini';
     try {
@@ -46,7 +50,7 @@ export class OpenaiService {
           content: m.content,
         })),
       });
-      this.registrar('retroalimentacion', model, resp);
+      this.registrar(operacion, model, resp, userId);
       return resp.output_text ?? '';
     } catch (error) {
       // The provider's message says which limit or key failed; losing it
@@ -61,9 +65,15 @@ export class OpenaiService {
   }
 
   /** Records a request's cost, never letting that failure surface. */
-  private registrar(operacion: Operacion, modelo: string, resp: unknown): void {
+  private registrar(
+    operacion: Operacion,
+    modelo: string,
+    resp: unknown,
+    userId?: string | null,
+  ): void {
     const usage = (resp as { usage?: { input_tokens?: number; output_tokens?: number } }).usage;
     void this.costos.registrar({
+      userId: userId ?? null,
       operacion,
       modelo,
       tokensEntrada: usage?.input_tokens ?? 0,
@@ -82,6 +92,7 @@ export class OpenaiService {
     messages: Array<{ role: 'developer' | 'user'; content: string }>,
     request: StructuredRequest,
     overrideModel?: string,
+    userId?: string | null,
   ): Promise<T> {
     const model = overrideModel || this.config.get('OPENAI_MODEL') || 'gpt-5-mini';
 
@@ -107,7 +118,7 @@ export class OpenaiService {
         throw new Error('the model returned an empty response');
       }
 
-      this.registrar(request.operacion ?? 'generar', model, resp);
+      this.registrar(request.operacion ?? 'generar', model, resp, userId);
 
       // Under strict mode this parse cannot fail on shape, only on a
       // refusal or a truncated reply, both of which are worth surfacing.

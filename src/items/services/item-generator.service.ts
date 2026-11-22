@@ -123,7 +123,9 @@ Si n=1 devuelve objeto, si n>1 devuelve array de n objetos.`;
    */
   async generate(
     params: { area: string; dificultad: string; tema?: string; plantilla?: string; n: number },
-    requestId?: string
+    requestId?: string,
+    /** Whose request this is, so the spend lands on their quota. */
+    userId?: string | null,
   ): Promise<{
     items: any[];
     rawModelOutput: string;
@@ -170,6 +172,8 @@ Si n=1 devuelve objeto, si n>1 devuelve array de n objetos.`;
         const structured = await this.openai.createStructured<{ items: unknown[] }>(
           messages,
           { schema: ITEMS_JSON_SCHEMA as unknown as Record<string, unknown>, schemaName: 'items_icfes' },
+          undefined,
+          userId,
         );
         const respText = JSON.stringify(structured);
         lastRawOutput = respText;
@@ -250,7 +254,7 @@ ${normErr.message}`;
             // Structural checks only prove the item is self-consistent.
             // Solving it independently is what catches an answer that is
             // confidently wrong.
-            const verification = await this.verifier.verify(validated);
+            const verification = await this.verifier.verify(validated, userId);
             if (!verification.accepted) {
               throw new Error(`verificación: ${verification.reason}`);
             }

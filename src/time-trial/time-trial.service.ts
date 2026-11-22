@@ -64,6 +64,7 @@ export class TimeTrialService {
     n: number;
     tema?: string;
     plantilla?: string;
+    userId?: string | null;
   }) {
     const requestId = nanoid();
     await this.persistence.createGenerationRequest({
@@ -84,6 +85,7 @@ export class TimeTrialService {
         n: section.n,
       },
       requestId,
+      section.userId,
     );
 
     if (result.items.length === 0) {
@@ -157,7 +159,7 @@ export class TimeTrialService {
 
     if (mix && mix.length > 0) {
       for (const section of mix) {
-        const result = await this.generateForSection(section);
+        const result = await this.generateForSection({ ...section, userId: params.userId });
         if (result.items.length > 0) {
           items.push(...result.items);
         }
@@ -178,6 +180,7 @@ export class TimeTrialService {
         dificultad: nivel,
         n: questions,
         tema: await this.temaDebil(params.userId, objetivo as Area),
+        userId: params.userId,
       });
       if (result.items.length > 0) {
         items.push(...result.items);
