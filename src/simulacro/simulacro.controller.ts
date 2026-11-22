@@ -21,6 +21,11 @@ const AnswerSchema = z.object({
   respuesta: z.enum(['A', 'B', 'C', 'D']),
 });
 
+const MarcarSchema = z.object({
+  orden: z.number().int().min(0),
+  marcada: z.boolean(),
+});
+
 @Controller('simulacro')
 @ApiTags('Simulacro')
 export class SimulacroController {
@@ -92,11 +97,30 @@ export class SimulacroController {
     return { ok: true, data: graded };
   }
 
+  @Post(':id/marcar')
+  @ApiOperation({ summary: 'Flag a question to come back to' })
+  async marcar(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Req() req: { userId?: unknown },
+  ) {
+    const userId = this.requireUserId(req);
+    const { orden, marcada } = MarcarSchema.parse(body);
+    return { ok: true, data: await this.simulacro.marcar(id, userId, orden, marcada) };
+  }
+
+  /**
+   * The sitting as the learner may see it: questions in order, their
+   * current choices, and the time left by the server's clock.
+   *
+   * This is what a reload or a reconnect asks for. It never carries the
+   * correct answers — the service selects around them.
+   */
   @Get(':id')
-  @ApiOperation({ summary: 'Read a sitting' })
+  @ApiOperation({ summary: 'Read a sitting, with its questions and time left' })
   async get(@Param('id') id: string, @Req() req: { userId?: unknown }) {
     const userId = this.requireUserId(req);
-    return { ok: true, data: await this.simulacro.get(id, userId) };
+    return { ok: true, data: await this.simulacro.estado(id, userId) };
   }
 
   @Get()

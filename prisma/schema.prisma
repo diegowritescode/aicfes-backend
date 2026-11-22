@@ -422,10 +422,17 @@ model SimulacroPregunta {
   itemId       String
   area         Area
   orden        Int
-  /// What the learner chose, null until they answer.
+  /// What the learner chose, null until they answer. It can change:
+  /// in the real exam you may go back and pick another option, and
+  /// only the last choice counts.
   respuesta    String?
   correcta     Boolean?
   respondidaEn DateTime?
+  /// Flagged by the learner to come back to, like the scratch sheet
+  /// they are given in the real sitting. It says nothing about whether
+  /// the question is answered — both states are independent, and both
+  /// show on the map.
+  marcada      Boolean  @default(false)
 
   @@unique([simulacroId, orden])
   @@index([simulacroId])
