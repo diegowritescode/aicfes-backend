@@ -191,7 +191,7 @@ Nada de esto *usa* el perfil todavía. Queda:
 - Que las misiones diarias salgan de las debilidades en vez de la lista
   fija de cinco.
 - ~~Que contrarreloj sortee con sesgo hacia lo flojo.~~ Hecho.
-- "El error del día".
+- ~~"El error del día".~~ Hecho.
 - Que el plan del feedback deje de ser genérico.
 
 ### Qué era (diseño original)
@@ -312,10 +312,23 @@ motivación en vez de construirla; Duolingo vende "streak freeze" por
 eso. Un perdón gratis al mes convierte el fracaso en algo recuperable.
 *Ya existe `streak` en el dashboard; falta el perdón.*
 
-**"El error del día".** Una sola pregunta diaria, tomada de lo que el
-estudiante ya falló. Treinta segundos. Es el hábito más barato de
-sostener y es exactamente lo que el ICFES premia: no repetir tu propio
-error. Depende de la sección 2.
+**"El error del día"** — **hecho** (nov 2026). Una pregunta diaria
+tomada de lo que el estudiante ya falló, en la tarjeta del dashboard,
+por encima de las estadísticas: los números describen el pasado, esto
+son los próximos treinta segundos.
+
+Es lo único aquí que **no cuesta nada**: la pregunta ya existe, ya
+tiene su explicación y se pagó cuando se generó.
+
+Orden de preferencia: una que falló y no ha vuelto a acertar, luego
+cualquiera de su tema más flojo, luego **nada**. A un estudiante sin
+historial no se le muestra tarjeta — una pregunta al azar rotulada
+"su error de hoy" es una mentira que descubre al primer vistazo.
+
+Verificado en producción: el usuario con fallos recibió una de las
+suyas sin la clave de respuesta; el usuario nuevo recibió `null`.
+
+`GET /api/error-del-dia?timeZone=America/Bogota`
 
 **Contrarreloj con progresión real** — **hecho** (nov 2026). Los tres
 modos viejos daban 60s por pregunta cada uno, así que no había
@@ -361,7 +374,8 @@ gratuita de forma recurrente. Eso es demanda; lo demás es suponer.
 2. ~~**Contrarreloj rediseñado**~~ — hecho (nov 2026). Primer consumidor
    del perfil.
 3. ~~**Modal de tutoría**~~ — hecho (nov 2026), de punta a punta.
-4. **"El error del día" y racha con perdón** — dependen de 2.
+4. ~~**"El error del día"**~~ — hecho (nov 2026). **Racha con perdón**
+   sigue pendiente.
 5. **Duelos** — cuando haya usuarios que duelar.
 6. **Overlay** — proyecto aparte, con su propio plan legal.
 7. **Pagos** — cuando la cuota gratuita moleste a gente real.
