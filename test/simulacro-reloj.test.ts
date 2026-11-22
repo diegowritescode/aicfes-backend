@@ -193,3 +193,18 @@ test('iniciar un simulacro no devuelve las preguntas', () => {
     'start no debe devolver las preguntas',
   );
 });
+
+test('un simulacro vencido sigue diciendo que se acabó el tiempo', async () => {
+  /* The first request after the time runs out grades the sitting.
+     Every later one — the results page among them — must still report
+     that the clock ran out, not that it was handed in: otherwise the
+     learner is told they submitted a sitting they never finished. */
+  const svc = servicio({
+    sitting: { ...abierto, status: 'terminado', startedAt: hace(200), minutos: 60, resultados: { correctas: 1 } },
+    preguntas: [{ orden: 0, area: 'MAT', itemId: 'i1', marcada: false, respuesta: 'A' }],
+    items: [{ id: 'i1', contexto: '', pregunta: '¿?', opciones: { A: '1' }, figura: null }],
+  });
+  const estado = await svc.estado('s1', 'u1');
+  assert.equal(estado.expirado, true);
+  assert.equal(estado.segundosRestantes, 0);
+});

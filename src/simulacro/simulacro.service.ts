@@ -210,9 +210,17 @@ export class SimulacroService {
     });
     if (!sitting) throw new NotFoundException('Simulacro no encontrado');
 
-    // Reading a sitting whose time has run out closes it, so the map
-    // and the clock cannot disagree about whether it is still running.
-    if (sitting.status === 'en_curso' && this.segundosRestantes(sitting) <= 0) {
+    /* A sitting whose time has run out is closed on read, so the map
+       and the clock cannot disagree about whether it is still running.
+
+       `expirado` is computed from the clock rather than from who did
+       the closing: the first request after the time runs out grades
+       it, and every later one — the results page among them — has to
+       keep reporting that the time ran out, not that it was handed in.
+       Otherwise the learner is told they submitted a sitting they
+       never got to finish. */
+    const seAcaboElTiempo = this.segundosRestantes(sitting) <= 0;
+    if (sitting.status === 'en_curso' && seAcaboElTiempo) {
       const graded = await this.finish(simulacroId, userId);
       return { ...graded, preguntas: [], segundosRestantes: 0, expirado: true };
     }
@@ -256,7 +264,7 @@ export class SimulacroService {
       segundosRestantes: this.segundosRestantes(sitting),
       resultados: sitting.resultados,
       preguntas,
-      expirado: false,
+      expirado: seAcaboElTiempo,
     };
   }
 
