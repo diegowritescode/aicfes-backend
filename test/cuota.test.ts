@@ -1,5 +1,7 @@
 import { test } from 'node:test';
 import * as assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import * as path from 'node:path';
 import { CuotaService } from '../src/calidad/cuota.service';
 import { SesionRequeridaGuard } from '../src/common/guards/sesion-requerida.guard';
 import { CuotaGuard } from '../src/common/guards/cuota.guard';
@@ -190,4 +192,33 @@ test('un id parcial no cuela como semilla', async () => {
   const svc = servicio({ gastado: 0.30, usuariosSemilla: 'u1' });
   const estado = await svc.puedeGenerar('u10', 1);
   assert.equal(estado.permitido, false);
+});
+
+test('compose le pasa al contenedor las variables de cuota', () => {
+  /* The settings were written into deploy/.env and the seeding account
+     still ran under the free cap, stopping after thirty items. The
+     compose file lists every variable the service sees, and these were
+     not in it, so the container never saw them and the code fell back
+     to its defaults. Nothing logged a complaint: from the code's side
+     there was nothing wrong.
+
+     Reading the file is the only way to catch this. A unit test of the
+     service passes either way — it is handed a config object. */
+  const compose = readFileSync(
+    path.join(__dirname, '../deploy/compose.yml'),
+    'utf-8',
+  );
+  const api = compose.slice(compose.indexOf('environment:', compose.indexOf('  api:')));
+
+  for (const clave of [
+    'USUARIOS_SEMILLA',
+    'CUOTA_DIARIA_SEMILLA_USD',
+    'CUOTA_DIARIA_GRATIS_USD',
+  ]) {
+    assert.match(
+      api,
+      new RegExp(`^\\s+${clave}:`, 'm'),
+      `${clave} no llega al contenedor: compose no la pasa`,
+    );
+  }
 });
