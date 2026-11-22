@@ -12,6 +12,7 @@ import { StudySessionSchema } from './dto/study-session.schema';
 import { AnswerInput, AnswersPayloadSchema } from './dto/answers.schema';
 import { CalidadService } from '../calidad/calidad.service';
 import { DebilidadesService } from '../calidad/debilidades.service';
+import { ErrorDelDiaService } from '../calidad/error-del-dia.service';
 import { HeartbeatSchema } from './dto/heartbeat.schema';
 import { StartSessionSchema } from './dto/start-session.schema';
 import { CompleteSessionSchema } from './dto/complete-session.schema';
@@ -25,6 +26,7 @@ export class DashboardController {
     private dashboardStream: DashboardStreamService,
     private calidad: CalidadService,
     private debilidades: DebilidadesService,
+    private errorDelDia: ErrorDelDiaService,
   ) {}
 
   private pickString(value: unknown) {
@@ -361,6 +363,29 @@ export class DashboardController {
       data: result,
       meta: { userId },
     };
+  }
+
+  /**
+   * GET /api/error-del-dia
+   *
+   * One question taken from what this learner already got wrong. Its
+   * own route rather than part of the dashboard payload: the card is
+   * the least important thing on the page, and should never be what
+   * makes the rest of it wait.
+   */
+  @Get('error-del-dia')
+  async obtenerErrorDelDia(@Req() req: any) {
+    const userId = this.getUserId(req);
+    if (!userId) {
+      return {
+        ok: false,
+        error: { code: 'USER_ID_REQUIRED', message: 'Inicia sesión para ver tu pregunta de hoy.' },
+      };
+    }
+
+    const zona = typeof req.query?.timeZone === 'string' ? req.query.timeZone : 'UTC';
+    const pregunta = await this.errorDelDia.paraHoy(userId, zona);
+    return { ok: true, data: pregunta };
   }
 
   @Post('answers')
