@@ -26,9 +26,9 @@ mañana. El contenido ya está resuelto; el hábito no.
 
 ---
 
-## 1. El modal de tutoría — **backend hecho** (nov 2026)
+## 1. El modal de tutoría — **hecho** (nov 2026)
 
-La API está en producción y probada. Falta la interfaz.
+En producción, de punta a punta.
 
 **Endpoints** (todos bajo sesión):
 `POST /api/tutoria/:itemId/abrir`, `/defensa`, `/mensaje`, `/resuelto`,
@@ -42,8 +42,19 @@ La API está en producción y probada. Falta la interfaz.
   contra el que finge rendirse. En ambos se negó y siguió guiando con
   preguntas.
 
-**Lo que falta:** el modal en el frontend, y conectar el reintento de
-la misma pregunta.
+**Cómo quedó el flujo:** falla → el panel ofrece "No entiendo por qué"
+→ el modal pide la defensa → responde con la explicación ya escrita →
+conversan hasta 6 turnos → "Volver a intentar" devuelve a la misma
+pregunta con las opciones vivas.
+
+**La primera respuesta se conserva y sigue contando.** Lo que el
+estudiante sabía antes de la explicación es la medida honesta;
+sobrescribirla haría que el perfil se leyera mejor que el estudiante.
+Acertar después se registra aparte: "lo sacó tras explicárselo" es
+distinto de "lo sabía".
+
+**Verificado en producción:** el hilo sobrevive entre intentos — 6
+mensajes y la defensa original intactos al volver a la pregunta.
 
 ### Diseño original
 
@@ -349,7 +360,7 @@ gratuita de forma recurrente. Eso es demanda; lo demás es suponer.
 1. ~~**Perfil de debilidades**~~ — hecho (nov 2026).
 2. ~~**Contrarreloj rediseñado**~~ — hecho (nov 2026). Primer consumidor
    del perfil.
-3. ~~**Modal de tutoría**~~ — backend hecho (nov 2026). Falta la interfaz.
+3. ~~**Modal de tutoría**~~ — hecho (nov 2026), de punta a punta.
 4. **"El error del día" y racha con perdón** — dependen de 2.
 5. **Duelos** — cuando haya usuarios que duelar.
 6. **Overlay** — proyecto aparte, con su propio plan legal.
