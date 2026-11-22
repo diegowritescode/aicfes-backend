@@ -43,6 +43,15 @@ services:
       CORS_ORIGIN: https://${WEB_HOST:?set WEB_HOST in deploy/.env}
       NODE_ENV: production
       PORT: 3000
+      # Daily spend caps, in dollars. Unset means the code's defaults.
+      # This block lists every variable the service sees, so a setting
+      # written only in .env never reaches the container — which is how
+      # a seeding account silently ran under the free cap and stopped
+      # after thirty items.
+      CUOTA_DIARIA_GRATIS_USD: ${CUOTA_DIARIA_GRATIS_USD:-}
+      CUOTA_DIARIA_SEMILLA_USD: ${CUOTA_DIARIA_SEMILLA_USD:-}
+      # Accounts allowed to stock the bank. Empty unless deliberately set.
+      USUARIOS_SEMILLA: ${USUARIOS_SEMILLA:-}
     healthcheck:
       test:
         - CMD-SHELL
