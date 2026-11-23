@@ -307,10 +307,15 @@ mismas 5 preguntas cuando puedan, gana el de mejor tiempo + aciertos.
 Es lo que hizo crecer a Duolingo. Social sin la presión de estar en
 vivo.
 
-**Racha con perdón.** Una racha que se rompe a los 30 días destruye la
-motivación en vez de construirla; Duolingo vende "streak freeze" por
-eso. Un perdón gratis al mes convierte el fracaso en algo recuperable.
-*Ya existe `streak` en el dashboard; falta el perdón.*
+**Racha con perdón** — **hecho** (23 nov 2026). Una racha que se rompe
+a los 30 días destruye la motivación en vez de construirla; Duolingo
+vende "streak freeze" por eso. Un perdón gratis al mes convierte el
+fracaso en algo recuperable.
+
+Verificado en producción: tres días estudiados saltándose ayer dan
+racha de 3, donde antes daban 1. Y la pantalla lo dice — "Te
+perdonamos un día" — porque un estudiante que sabe que faltó ayer y ve
+la racha intacta concluiría que el número está mal.
 
 **"El error del día"** — **hecho** (nov 2026). Una pregunta diaria
 tomada de lo que el estudiante ya falló, en la tarjeta del dashboard,
@@ -339,11 +344,36 @@ Calentamiento 90s, Ritmo real 64s, Bajo presión 45s, Muerte súbita
 perfil de debilidades. Verificado en producción: un usuario que falló
 Matemáticas recibió 7 preguntas de Matemáticas.
 
+Desde el 23 nov 2026 **las preguntas salen del banco** y solo se
+generan las que falten (ADR 31). Una ronda de ocho eran ocho
+peticiones al modelo por preguntas que ya existían, y "Las cinco
+áreas" hacía cinco llamadas **en secuencia** — ahí estaba toda la
+lentitud. En un modo cuyo punto es el ritmo, repetir una pregunta
+cuesta poco; `draw` ordena por `lastServedAt`, así que la repetida es
+siempre la más vieja que vio. Entrenar sigue generando, que es donde
+la novedad se paga sola.
+
 ### No vale la pena
 
 **Ranking global.** Con estudiantes estresados, ver que eres el #4.200
 desmotiva. Si hay ranking, que sea contra uno mismo de la semana
 pasada, o en una liga de diez.
+
+**Liga de diez** — descartada el 23 nov 2026. Aparecía arriba como la
+salida decente al ranking, y la evidencia la tumbó: Hadi Mogavi 2022
+(L@S, sobre Duolingo) describe cómo la competitividad y el *herding*
+desplazan el foco del aprendizaje, y el meta-análisis Li/Ma/Shi 2023
+da gamificación en línea en g = 0,340 con el cero dentro del
+intervalo, con el efecto cayendo a g = 0,01 en edades mayores. Costaba
+tabla nueva y agrupación semanal para el minijuego de peor relación
+valor/costo de la lista.
+
+**"Modo última hora"** — descartado el 23 nov 2026, y conviene decir
+de dónde salió: lo propuso Claude en sesión, no estaba en esta visión.
+Era barato (un modo más en la escalera de contrarreloj) y eso fue
+justo el argumento sospechoso: barato no es lo mismo que valioso. La
+escalera ya tiene cinco niveles anclados al ritmo real del examen; un
+sexto nivel no le enseña nada nuevo a nadie.
 
 **Vidas o corazones.** Castigar el error en una app de estudio es
 contraproducente. El error es el dato más valioso que tenemos: es lo
