@@ -341,9 +341,9 @@ INTERNAL_ERROR      - Error del servidor
 ### Ejemplos Completos
 
 Ver documentación detallada en:
-- 📄 [docs/API.md](docs/API.md) - Guía de endpoints
-- 📚 [docs/API_DEEPDIVE.md](docs/API_DEEPDIVE.md) - Documentación técnica
-- 🛡️ [docs/HARDENING_COMPLETE.md](docs/HARDENING_COMPLETE.md) - Seguridad y validaciones
+- 📄 [API.md](API.md) - Guía de endpoints
+- 📚 [API_DEEPDIVE.md](API_DEEPDIVE.md) - Documentación técnica
+- 🛡️ [HARDENING_COMPLETE.md](HARDENING_COMPLETE.md) - Seguridad y validaciones
 
 ---
 
@@ -638,7 +638,9 @@ LOG: [requestId: abc123] Items saved to DB
 
 MIT © 2026 AICFES
 
-Libre para uso comercial y personal. Ver [LICENSE](LICENSE) para detalles.
+Libre para uso comercial y personal. (No hay archivo `LICENSE` en el
+repositorio todavía; conviene añadir uno para que esta frase signifique
+algo.)
 
 ---
 
@@ -693,7 +695,8 @@ La UI incluye:
 - ✅ Sección JSON raw copiable
 - ✅ Soporte responsive
 
-👉 **Ver documentación completa en [UI.md](UI.md)**
+👉 *(Había un enlace a `UI.md` aquí. Ese archivo no existe en el
+repositorio.)*
 
 ## 💻 Setup Detallado
 

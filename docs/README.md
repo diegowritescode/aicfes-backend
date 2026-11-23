@@ -30,13 +30,33 @@ valor está en saber qué se pensaba entonces.
 | [8](adr/0008-the-client-renews-before-it-reports-a-lost-session.md) | El cliente renueva antes de reportar sesión perdida |
 | [9](adr/0009-every-route-that-spends-or-reveals-requires-a-session.md) | Toda ruta que gasta o revela exige sesión |
 | [10](adr/0010-informative-feedback-over-rewards-for-finishing.md) | Feedback informativo sobre premios por completar |
+| [11](adr/0011-failures-lean-toward-the-learner-except-on-correctness.md) | Los fallos se inclinan a favor del estudiante, salvo en corrección |
+| [12](adr/0012-costs-are-integers-and-round-against-us.md) | Los costos son enteros y redondean en nuestra contra |
+| [13](adr/0013-the-cap-is-money-not-questions.md) | El tope es dinero, no preguntas |
+| [14](adr/0014-the-exam-clock-belongs-to-the-server.md) | El reloj del examen es del servidor |
+| [15](adr/0015-the-verifier-comes-from-another-model-family.md) | El verificador es de otra familia de modelos |
+| [16](adr/0016-generated-from-real-booklets-never-from-memory.md) | Se genera desde cuadernillos reales, no desde la memoria del modelo |
+| [17](adr/0017-the-tutor-explains-first-and-never-gives-the-letter.md) | El tutor explica primero y nunca da la letra |
+| [18](adr/0018-android-first-and-ios-later.md) | Android primero, iOS después |
 
-**Faltan ADRs retroactivos.** Una revisión del historial encontró ~26
-decisiones tomadas y nunca registradas: el verificador de otra familia
-de modelos, el libro de costos en enteros, el reloj del simulacro en el
-servidor, Android primero, la asimetría deliberada entre la cuota (que
-falla permitiendo) y el verificador (que falla negando). Están
-inventariadas y pendientes de escribir.
+Del 11 al 18 son **retroactivos**: decisiones que se tomaron en el
+código y nunca se escribieron. Se recuperaron del historial de commits
+y de los comentarios, y cada afirmación se verificó contra el archivo
+antes de registrarla.
+
+**Quedan ~18 por escribir.** Las que faltan, por orden de cuánto cuesta
+olvidarlas: el schema estricto por rama de figura, el banco verificado
+que se reutiliza en vez de regenerar, la calidad de ítem medida con
+respuestas reales, el perfil de debilidad con piso de 4 respuestas, la
+escalera del contrarreloj anclada a 64 segundos, entrenamiento y
+simulacro como features separadas y no un flag, las dos imágenes que
+coexisten para poder volver atrás, y que el compose tiene que listar
+cada variable.
+
+**Dos huecos que no se pudieron documentar:** no hay rastro en el
+historial de por qué NestJS, y el rechazo de Capacitor no aparece en
+ningún commit ni comentario de ninguno de los dos repos. Si esas
+decisiones se tomaron en una conversación, la razón se perdió.
 
 ## Por área
 
