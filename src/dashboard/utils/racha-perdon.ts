@@ -107,21 +107,58 @@ export function ultimoPerdon(
 ): Fecha | null {
   const dias = [...new Set(fechasDeEstudio)].sort();
 
-  /* Newest first: the most recent gap is the one that matters, since
-     a forgiveness older than thirty days no longer blocks another. */
-  for (let i = dias.length - 1; i > 0; i -= 1) {
+  /* Gaps inside the current run do not count as spent: those are the
+     ones the forgiveness is about to cover, and counting them would
+     make the rule refuse itself. Found by testing against production —
+     a learner who missed yesterday got no forgiveness because missing
+     yesterday was read as having already used one.
+
+     So the search starts before the current run, which is everything
+     older than the first break of more than one day. */
+  const inicioDeLaRacha = indiceDeInicioDeRacha(dias, hoy);
+
+  /* Newest first among the older days: the most recent spent
+     forgiveness is the one that matters, since one older than thirty
+     days no longer blocks another. */
+  for (let i = inicioDeLaRacha - 1; i > 0; i -= 1) {
     if (diffDias(dias[i]!, dias[i - 1]!) === 2) {
       return restarDias(dias[i]!, 1);
     }
   }
 
-  /* And the gap between the last study day and today, which is the
-     one a learner is living through right now. */
-  if (dias.length > 0 && diffDias(hoy, dias[dias.length - 1]!) === 2) {
-    return restarDias(hoy, 1);
+  return null;
+}
+
+/**
+ * Where the current run begins, as an index into the sorted dates.
+ *
+ * A run is days one apart, or two apart once — the gap a forgiveness
+ * would cover. Anything wider ends it.
+ */
+function indiceDeInicioDeRacha(dias: readonly Fecha[], hoy: Fecha): number {
+  if (dias.length === 0) return 0;
+
+  const ultimo = dias[dias.length - 1]!;
+  if (diffDias(hoy, ultimo) > 2) return dias.length;
+
+  let yaHuboHueco = diffDias(hoy, ultimo) === 2;
+  let i = dias.length - 1;
+
+  while (i > 0) {
+    const hueco = diffDias(dias[i]!, dias[i - 1]!);
+    if (hueco === 1) {
+      i -= 1;
+      continue;
+    }
+    if (hueco === 2 && !yaHuboHueco) {
+      yaHuboHueco = true;
+      i -= 1;
+      continue;
+    }
+    break;
   }
 
-  return null;
+  return i;
 }
 
 /** Days since the last forgiveness, or Infinity if there was none. */
