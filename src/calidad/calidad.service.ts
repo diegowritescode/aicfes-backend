@@ -11,8 +11,12 @@ import { PrismaService } from '../persistence/prisma.service';
  *
  * The thresholds follow standard item analysis: the proportion who
  * answer correctly is the difficulty index (p), and a usable item sits
- * roughly between 0.2 and 0.9. Below that it is likely broken; above
- * it, it is not measuring anything.
+ * between P_MINIMO and P_MAXIMO below. Below that it is likely broken;
+ * above it, it is not measuring anything.
+ *
+ * The bounds are named rather than repeated here: this comment used to
+ * say 0.9 while the constant said 0.95, which is the kind of drift a
+ * second copy of a number always produces.
  */
 
 /** Below this share correct, an item is more likely broken than hard. */

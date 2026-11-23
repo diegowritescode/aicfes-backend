@@ -38,20 +38,24 @@ valor está en saber qué se pensaba entonces.
 | [16](adr/0016-generated-from-real-booklets-never-from-memory.md) | Se genera desde cuadernillos reales, no desde la memoria del modelo |
 | [17](adr/0017-the-tutor-explains-first-and-never-gives-the-letter.md) | El tutor explica primero y nunca da la letra |
 | [18](adr/0018-android-first-and-ios-later.md) | Android primero, iOS después |
+| [19](adr/0019-the-bank-is-reused-not-regenerated.md) | El banco se reutiliza, no se regenera |
+| [20](adr/0020-item-quality-is-measured-with-real-answers.md) | La calidad del ítem se mide con respuestas reales |
+| [21](adr/0021-training-and-sittings-are-separate-features.md) | Entrenar y simular son features separadas, no un flag |
+| [22](adr/0022-no-verdict-on-too-little-data.md) | Sin veredicto con pocos datos |
+| [23](adr/0023-the-schema-constrains-the-model-not-the-prompt.md) | El esquema restringe al modelo, no el prompt |
+| [24](adr/0024-deploys-roll-back-by-changing-a-tag.md) | El despliegue se revierte cambiando una etiqueta |
 
 Del 11 al 18 son **retroactivos**: decisiones que se tomaron en el
 código y nunca se escribieron. Se recuperaron del historial de commits
 y de los comentarios, y cada afirmación se verificó contra el archivo
 antes de registrarla.
 
-**Quedan ~18 por escribir.** Las que faltan, por orden de cuánto cuesta
-olvidarlas: el schema estricto por rama de figura, el banco verificado
-que se reutiliza en vez de regenerar, la calidad de ítem medida con
-respuestas reales, el perfil de debilidad con piso de 4 respuestas, la
-escalera del contrarreloj anclada a 64 segundos, entrenamiento y
-simulacro como features separadas y no un flag, las dos imágenes que
-coexisten para poder volver atrás, y que el compose tiene que listar
-cada variable.
+**Quedan ~12 por escribir**, ninguna de las más costosas. Entre ellas:
+la escalera del contrarreloj anclada a 64 segundos (está explicada en
+`modos.ts` y en VISION_PRODUCTO), el loader que indexa por hash del
+enunciado, los encabezados de seguridad del frontend estático, y que
+la medición vive en su propio módulo para evitar un ciclo entre
+`items` y `dashboard`.
 
 **Dos huecos que no se pudieron documentar:** no hay rastro en el
 historial de por qué NestJS, y el rechazo de Capacitor no aparece en
