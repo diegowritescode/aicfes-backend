@@ -65,6 +65,15 @@ export class ErrorDelDiaService {
    */
   async paraHoy(userId: string, timeZone = 'UTC'): Promise<ErrorDelDia | null> {
     try {
+      /* One a day, which is what the name promises. Without this the
+         card offered a new question the moment one was answered: a
+         learner who answered theirs got another, then another, and
+         "tu pregunta de hoy" became a feed. Reported from a phone.
+
+         No new table for it: a question answered today is evidence
+         that today's question was done. */
+      if (await this.yaHizoLaDeHoy(userId, timeZone)) return null;
+
       const fallado = await this.ultimoFallado(userId, timeZone);
       if (fallado) return fallado;
       return await this.deTemaDebil(userId);
@@ -161,6 +170,27 @@ export class ErrorDelDiaService {
    * worth another go. Failing it today is the reason it is today's
    * question, not a reason to put it away.
    */
+  /**
+   * Whether today's question has already been done.
+   *
+   * Any single-question session answered today counts, which is what
+   * this card produces: it opens a session, saves one answer and
+   * closes it. A longer session is training, not the card, and must
+   * not consume the day's question.
+   */
+  private async yaHizoLaDeHoy(userId: string, timeZone: string): Promise<boolean> {
+    const inicio = this.inicioDelDiaLocal(timeZone);
+    const sesionDeUna = await this.prisma.studySession.findFirst({
+      where: {
+        userId,
+        totalQuestions: 1,
+        endedAt: { gte: inicio },
+      },
+      select: { id: true },
+    });
+    return Boolean(sesionDeUna);
+  }
+
   private async yaRespondioHoy(
     userId: string,
     itemId: string,

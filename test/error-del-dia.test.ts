@@ -27,6 +27,8 @@ function servicio(opciones: {
   temasDebiles?: Array<Record<string, unknown>>;
   respuestaDeHoy?: boolean;
   aciertoDeHoy?: boolean;
+  /** A one-question session finished today: the card was already done. */
+  yaHizoLaDeHoy?: boolean;
   falla?: boolean;
 }): ErrorDelDiaService {
   const prisma = {
@@ -45,6 +47,13 @@ function servicio(opciones: {
     generatedItem: {
       findUnique: async () => opciones.item ?? item,
       findFirst: async () => opciones.item ?? item,
+    },
+    studySession: {
+      /* The card is one question a day, and a one-question session
+         finished today is the evidence that today's was done. Default
+         null: these cases are about picking a question, not about
+         having already picked one. */
+      findFirst: async () => (opciones.yaHizoLaDeHoy ? { id: 's1' } : null),
     },
   };
   const debilidades = {
@@ -145,4 +154,24 @@ test('una zona horaria inválida no tumba la tarjeta', async () => {
     respuestas: [{ itemId: 'i1', isCorrect: false, createdAt: hace(2) }],
   }).paraHoy('u1', 'Marte/Olympus');
   assert.ok(hoy);
+});
+
+test('una vez hecha la del día, no hay otra hasta mañana', async () => {
+  /* Reported from a phone: answering the card produced another
+     question, then another. "Tu pregunta de hoy" turned into a feed,
+     and the name stopped being true. */
+  const svc = servicio({
+    respuestas: [{ itemId: 'i1', isCorrect: false, createdAt: new Date() }],
+    yaHizoLaDeHoy: true,
+  });
+  assert.equal(await svc.paraHoy('u1', 'America/Bogota'), null);
+});
+
+test('con errores pendientes y sin haberla hecho, sí hay pregunta', async () => {
+  // The other half: the guard must not swallow the card entirely.
+  const svc = servicio({
+    respuestas: [{ itemId: 'i1', isCorrect: false, createdAt: new Date() }],
+    yaHizoLaDeHoy: false,
+  });
+  assert.notEqual(await svc.paraHoy('u1', 'America/Bogota'), null);
 });

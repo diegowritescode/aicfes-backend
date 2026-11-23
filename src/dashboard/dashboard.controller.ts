@@ -13,6 +13,7 @@ import { AnswerInput, AnswersPayloadSchema } from './dto/answers.schema';
 import { CalidadService } from '../calidad/calidad.service';
 import { DebilidadesService } from '../calidad/debilidades.service';
 import { ErrorDelDiaService } from '../calidad/error-del-dia.service';
+import { RepasoService } from '../calidad/repaso.service';
 import { HeartbeatSchema } from './dto/heartbeat.schema';
 import { StartSessionSchema } from './dto/start-session.schema';
 import { CompleteSessionSchema } from './dto/complete-session.schema';
@@ -27,6 +28,7 @@ export class DashboardController {
     private calidad: CalidadService,
     private debilidades: DebilidadesService,
     private errorDelDia: ErrorDelDiaService,
+    private repaso: RepasoService,
   ) {}
 
   private pickString(value: unknown) {
@@ -598,6 +600,49 @@ export class DashboardController {
    * most of their XP came from getting things right, not to scroll two
    * hundred rows.
    */
+  /**
+   * GET /api/repaso
+   *
+   * Every mistake still outstanding, with counts. The question of the
+   * day shows one as a nudge; this is the tool for working through
+   * them — a learner who wants to clear their mistakes needs to see
+   * how many there are and whether the number is going down.
+   */
+  @Get('repaso')
+  @ApiOperation({ summary: 'Errores pendientes de repasar' })
+  @ApiQuery({ name: 'area', required: false, type: String })
+  @ApiQuery({ name: 'limite', required: false, type: Number })
+  @ApiResponse({ status: 200, description: 'Errores pendientes y su resumen.' })
+  async getRepaso(
+    @Req() req: any,
+    @Query('area') area?: string,
+    @Query('limite') limiteStr?: string,
+  ) {
+    const userId = this.getUserId(req);
+    if (!userId) {
+      return {
+        ok: false,
+        error: { code: 'USER_ID_REQUIRED', message: 'Inicia sesión.' },
+        meta: {},
+      };
+    }
+
+    const AREAS = ['MAT', 'LC', 'CN', 'SOC', 'ING'];
+    /* An unknown area is ignored rather than refused: a stale link or
+       a typo should show everything, not an error page. */
+    const areaValida = area && AREAS.includes(area) ? (area as never) : undefined;
+
+    const pedido = Number(limiteStr);
+    const limite = Number.isFinite(pedido) && pedido > 0 ? Math.floor(pedido) : undefined;
+
+    const [pendientes, resumen] = await Promise.all([
+      this.repaso.pendientes({ userId, area: areaValida, limite }),
+      this.repaso.resumen(userId),
+    ]);
+
+    return { ok: true, data: { pendientes, resumen }, meta: { area: areaValida ?? null } };
+  }
+
   @Get('xp-desglose')
   @ApiOperation({ summary: 'De dónde viene el XP del estudiante' })
   @ApiResponse({ status: 200, description: 'XP agrupado por su origen.' })
