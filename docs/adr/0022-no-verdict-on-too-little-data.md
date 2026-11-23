@@ -27,7 +27,7 @@ Each feature declares a floor and says "sin medir" below it.
 |---|---|---|
 | Weakness profile | 4 answers per topic | `debilidades.service.ts:23` |
 | Item quality | 20 answers | `calidad.service.ts` |
-| Study day (for the streak) | 5 minutes **and** 3 questions | `dashboard-math.ts:8` |
+| Study day (for the streak) | 5 minutes **or** 3 questions | `dashboard-math.ts:81` |
 
 Below the floor the answer is an explicit absence, not a zero and not a
 default. `areaPrioritaria` is `null` rather than the least-bad guess;
@@ -39,9 +39,24 @@ to notice a pattern a learner would recognise; twenty is the standard
 minimum for an item analysis, where the number has to support a
 statistic.
 
-The study-day floor is an **and**, not an **or**: three questions in
+The study-day floor is an **or** (`isStudyDay`,
+`dashboard-math.ts:81`): either five minutes of session time or three
+questions answered.
+
+This record first described it as an **and** — three questions in
 twenty seconds is not a day of study, and neither is five minutes with
-the app open and nothing answered.
+the app open and nothing answered. That is the stricter rule and it is
+not the one that runs. The `or` was found by exercising the flow
+against a database rather than by reading the file, which is the only
+reason it was caught.
+
+Leaving it as `or` is the kinder reading and probably right: a learner
+who answers three questions on a bad day has studied, and a learner
+who spends five minutes reading an explanation without answering has
+too. The looseness it allows — three fast guesses count as a day — is
+a cost of the streak itself, not of this threshold, and the streak is
+already the mechanic with the weakest evidence behind it (see
+[ADR 10](0010-informative-feedback-over-rewards-for-finishing.md)).
 
 ## Consequences
 
