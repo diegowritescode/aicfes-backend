@@ -585,6 +585,37 @@ export class DashboardController {
     };
   }
 
+  /**
+   * GET /api/xp-desglose
+   *
+   * Where this learner's XP came from. The ledger has recorded a
+   * reason for every award since it was built and nothing ever showed
+   * it, so the app displayed a total with no explanation — a reward
+   * rather than feedback, which is the distinction that decides
+   * whether the number helps or hurts.
+   *
+   * Grouped by source rather than listed: a learner wants to know that
+   * most of their XP came from getting things right, not to scroll two
+   * hundred rows.
+   */
+  @Get('xp-desglose')
+  @ApiOperation({ summary: 'De dónde viene el XP del estudiante' })
+  @ApiResponse({ status: 200, description: 'XP agrupado por su origen.' })
+  async getXpDesglose(@Req() req: any) {
+    const userId = this.getUserId(req);
+    if (!userId) {
+      return {
+        ok: false,
+        error: { code: 'USER_ID_REQUIRED', message: 'Inicia sesión.' },
+        meta: {},
+      };
+    }
+
+    const { filas, frase, eventos } = await this.dashboardService.getXpDesglose(userId);
+
+    return { ok: true, data: { filas, frase }, meta: { eventos } };
+  }
+
   @Get('achievements')
   @ApiOperation({ summary: 'Achievements list' })
   @ApiResponse({ status: 200, description: 'Achievements and progress.' })

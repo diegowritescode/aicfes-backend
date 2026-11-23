@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { desglosar, resumirDesglose } from './xp-desglose';
 import { PrismaService } from '../persistence/prisma.service';
 import {
   Area,
@@ -1088,6 +1089,26 @@ export class DashboardService {
       cached: false,
       cacheExpiresInSeconds: Math.ceil(CACHE_TTL_MS / 1000),
     };
+  }
+
+  /**
+   * The XP ledger for one learner, grouped by what earned it.
+   *
+   * Bounded and recent-first: the ledger grows without limit, and the
+   * oldest events of a long-running account would change no percentage
+   * a learner acts on.
+   */
+  async getXpDesglose(userId: string) {
+    const user = await this.ensureUser(userId);
+    const eventos = await this.prisma.xPEvent.findMany({
+      where: { userId: user.id },
+      select: { reason: true, amount: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+      take: 500,
+    });
+
+    const filas = desglosar(eventos);
+    return { filas, frase: resumirDesglose(filas), eventos: eventos.length };
   }
 
   async getAchievements(userId: string) {
