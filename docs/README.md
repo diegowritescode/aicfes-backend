@@ -44,18 +44,23 @@ valor está en saber qué se pensaba entonces.
 | [22](adr/0022-no-verdict-on-too-little-data.md) | Sin veredicto con pocos datos |
 | [23](adr/0023-the-schema-constrains-the-model-not-the-prompt.md) | El esquema restringe al modelo, no el prompt |
 | [24](adr/0024-deploys-roll-back-by-changing-a-tag.md) | El despliegue se revierte cambiando una etiqueta |
+| [25](adr/0025-the-contrarreloj-ladder-is-anchored-to-the-real-exams-pace.md) | La escalera del contrarreloj está anclada al ritmo del examen real |
+| [26](adr/0026-a-reference-item-is-identified-by-its-stem.md) | Un ítem de referencia se identifica por su enunciado |
+| [27](adr/0027-measurement-lives-in-its-own-module.md) | La medición vive en su propio módulo |
+| [28](adr/0028-cost-is-recorded-after-the-answer-is-sent.md) | El costo se registra después de enviar la respuesta |
+| [29](adr/0029-the-dashboard-streams-with-polling-as-the-fallback.md) | El panel se sirve por SSE, con sondeo de respaldo |
+| [30](adr/0030-the-web-client-is-a-static-bundle-with-headers-per-location.md) | El cliente web es un bundle estático, con encabezados por location |
 
-Del 11 al 18 son **retroactivos**: decisiones que se tomaron en el
-código y nunca se escribieron. Se recuperaron del historial de commits
-y de los comentarios, y cada afirmación se verificó contra el archivo
-antes de registrarla.
+Del 11 al 18 y del 25 al 30 son **retroactivos**: decisiones que se
+tomaron en el código y nunca se escribieron. Se recuperaron del
+historial de commits y de los comentarios, y cada afirmación se
+verificó contra el archivo antes de registrarla.
 
-**Quedan ~12 por escribir**, ninguna de las más costosas. Entre ellas:
-la escalera del contrarreloj anclada a 64 segundos (está explicada en
-`modos.ts` y en VISION_PRODUCTO), el loader que indexa por hash del
-enunciado, los encabezados de seguridad del frontend estático, y que
-la medición vive en su propio módulo para evitar un ciclo entre
-`items` y `dashboard`.
+**Quedan ~6 por escribir**, ninguna de las más costosas.
+
+El 30 documenta código del **otro repositorio** (`aicfes-frontend`,
+rama `main`): sus referencias de archivo y línea son de allá, no de
+aquí.
 
 **Dos huecos que no se pudieron documentar:** no hay rastro en el
 historial de por qué NestJS, y el rechazo de Capacitor no aparece en
