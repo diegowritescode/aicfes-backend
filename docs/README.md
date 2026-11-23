@@ -69,6 +69,11 @@ decisiones se tomaron en una conversación, la razón se perdió.
 
 ## Por área
 
+**El peaje (la función central)**
+- [BLOQUEO-NATIVO.md](BLOQUEO-NATIVO.md) — qué hace falta para bloquear
+  apps de verdad, con el código del módulo verificado y las políticas
+  de Play; incluye por qué las apps las elige el usuario y no el código
+
 **El producto y el mercado**
 - [VISION_PRODUCTO.md](VISION_PRODUCTO.md) — el problema real, cada
   feature con su coste, la investigación verificada de plataformas y
