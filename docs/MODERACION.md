@@ -21,11 +21,36 @@ En el servidor, no por chat ni por este documento:
 ```bash
 ssh aitera-vps
 cd /home/diego/apps/aicfes/deploy
-# Genere el secreto en el servidor, así nunca viaja a ninguna parte:
+
+# 1. Genere el secreto EN EL SERVIDOR, así nunca viaja a ninguna parte.
+#    No lo pegue en un chat ni en un documento: si lo hace, rótelo.
 openssl rand -hex 32
-# Agréguelo a .env como MODERACION_TOKEN=...
-docker compose up -d api
+
+# 2. Agréguelo a .env como MODERACION_TOKEN=...
+
+# 3. Recree el contenedor.
+docker compose up -d --force-recreate api
 ```
+
+**El paso que es fácil omitir:** `compose.yml` tiene que declarar la
+variable en `environment:`. Compose **no** pasa `.env` al contenedor
+por su cuenta — un secreto que está en `.env` y no en esa lista no
+llega a ninguna parte, y la API responde 403 a su propio token sin
+decir por qué. Así se desplegó la primera vez.
+
+Ya está declarada en `deploy/compose.yml`. Si alguna vez vuelve a dar
+403 con el token correcto, lo primero es comprobar que el contenedor
+la ve, sin imprimir el valor:
+
+```bash
+docker compose exec -T api sh -c 'echo ${#MODERACION_TOKEN}'
+# 64 si llegó. 0 si no llegó.
+```
+
+Y que `up -d` recreó el contenedor en vez de dejarlo corriendo: si
+dice `Running` y no `Recreated`, el cambio no se aplicó. Por eso el
+`--force-recreate` de arriba — cambiar solo `.env`, sin cambiar la
+imagen, no basta para que compose recree nada.
 
 Para comprobar que quedó: sin la cabecera debe responder **403**.
 

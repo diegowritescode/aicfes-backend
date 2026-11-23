@@ -56,6 +56,14 @@ services:
       CUOTA_DIARIA_SEMILLA_USD: ${CUOTA_DIARIA_SEMILLA_USD:-}
       # Accounts allowed to stock the bank. Empty unless deliberately set.
       USUARIOS_SEMILLA: ${USUARIOS_SEMILLA:-}
+      # Opens the moderation queue. Absent means the queue is closed to
+      # everyone, which is deliberate: open-when-unset would leak a
+      # queue of minors' reports the first time someone deploys without
+      # it, and silently. Declared here because compose does not pass
+      # `.env` into a container on its own — a secret in `.env` and not
+      # in this list reaches nothing, which is exactly how this was
+      # first deployed.
+      MODERACION_TOKEN: ${MODERACION_TOKEN:-}
     healthcheck:
       test:
         - CMD-SHELL

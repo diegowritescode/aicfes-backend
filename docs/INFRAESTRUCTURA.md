@@ -97,6 +97,21 @@ efecto es el mismo que no pasarla.
 
 ---
 
+**Una variable en `.env` no llega al contenedor por sí sola.** Compose
+solo pasa las que `compose.yml` declara en `environment:`. Un secreto
+que está en `.env` y no en esa lista no llega a ninguna parte, y la
+aplicación falla como si el secreto fuera incorrecto. Ya pasó con
+`MODERACION_TOKEN`. Para comprobarlo sin imprimir el valor:
+
+```bash
+docker compose exec -T api sh -c 'echo ${#MI_VARIABLE}'
+```
+
+Y `docker compose up -d api` **no recrea** el contenedor si la imagen
+no cambió, así que un cambio solo en `.env` necesita
+`--force-recreate`. Si la salida dice `Running` y no `Recreated`, no
+se aplicó.
+
 ## Variables de entorno
 
 ### Obligatorias
@@ -136,6 +151,7 @@ despliegue falle en vez de arrancar mal.
 | `CUOTA_DIARIA_SEMILLA_USD` | `10.00` | para llenar el banco |
 | `COSTO_ESTIMADO_PREGUNTA_USD` | `0.009` | medido, no supuesto |
 | `USUARIOS_SEMILLA` | vacío | ids separados por coma |
+| `MODERACION_TOKEN` | vacío | abre la cola de denuncias; vacío la cierra |
 | `MAX_ITEMS` | `25` | tope de ítems por petición |
 | `BODY_LIMIT` | `1mb` | tamaño máximo de petición |
 | `CORS_ORIGIN` | `*` | lista separada por comas |
