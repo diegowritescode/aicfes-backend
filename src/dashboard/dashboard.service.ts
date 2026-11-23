@@ -96,6 +96,11 @@ type DashboardData = {
     longestDays: number;
     nextMilestoneDays: number;
     lastStudyDate: string;
+    /* Whether a missed day is being forgiven right now. Worth saying
+       out loud: a learner who knows they skipped yesterday and sees
+       the streak unbroken would otherwise think the number is
+       wrong. */
+    perdonUsado: boolean;
   };
   level: {
     level: number;
@@ -1083,6 +1088,7 @@ export class DashboardService {
 
     const data: DashboardData = {
       streak: {
+        perdonUsado: streak.perdonUsado ?? false,
         currentDays: streak.currentDays,
         longestDays: streak.longestDays,
         nextMilestoneDays: streak.nextMilestoneDays,
