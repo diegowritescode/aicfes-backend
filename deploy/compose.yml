@@ -49,6 +49,10 @@ services:
       # a seeding account silently ran under the free cap and stopped
       # after thirty items.
       CUOTA_DIARIA_GRATIS_USD: ${CUOTA_DIARIA_GRATIS_USD:-}
+      # The paid cap was missing here while `pago` existed only as a
+      # type. Now that User.plan is a column, a paying learner would
+      # have silently got whatever the code defaults to.
+      CUOTA_DIARIA_PAGO_USD: ${CUOTA_DIARIA_PAGO_USD:-}
       CUOTA_DIARIA_SEMILLA_USD: ${CUOTA_DIARIA_SEMILLA_USD:-}
       # Accounts allowed to stock the bank. Empty unless deliberately set.
       USUARIOS_SEMILLA: ${USUARIOS_SEMILLA:-}

@@ -218,6 +218,12 @@ test('compose le pasa al contenedor las variables de cuota', () => {
     'USUARIOS_SEMILLA',
     'CUOTA_DIARIA_SEMILLA_USD',
     'CUOTA_DIARIA_GRATIS_USD',
+    /* Missing from both the compose file and this list while `pago`
+       was only a type. The moment User.plan became a column, a paying
+       learner would have been metered at whatever the code defaults
+       to — silently, since nothing fails when a setting simply never
+       arrives. */
+    'CUOTA_DIARIA_PAGO_USD',
   ]) {
     assert.match(
       api,

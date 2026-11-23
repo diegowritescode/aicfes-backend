@@ -119,7 +119,21 @@ Images are built once in CI and deployed by commit SHA. Postgres stays on
 an internal network and is never published. The API container runs
 read-only with all capabilities dropped, and Traefik terminates TLS.
 
+## Documentation
+
+[`docs/`](docs/README.md) is the index. The four pages worth knowing
+about:
+
+| Page | What it answers |
+|---|---|
+| [Arquitectura](docs/ARQUITECTURA.md) | how this is built, with diagrams |
+| [Modelo de datos](docs/MODELO-DE-DATOS.md) | the 18 tables and their relations |
+| [Infraestructura](docs/INFRAESTRUCTURA.md) | the server, the env vars, the runbook |
+| [Visión de producto](docs/VISION_PRODUCTO.md) | where this is going and why |
+
 ## Decisions
 
-Written up in [`docs/adr`](docs/adr). The longer feature-by-feature
-documentation is in [`docs/README-detallado.md`](docs/README-detallado.md).
+Written up as ADRs in [`docs/adr`](docs/adr): what the problem was,
+which alternatives were rejected, and what we live with as a result.
+They are not edited when something changes — a new one supersedes the
+old, because the value is in knowing what was thought at the time.
