@@ -1,5 +1,15 @@
 # 📚 AICFES Item Generator API - Documentación Completa
 
+> **⚠️ Incompleto. Verificado el 22 nov 2026.**
+>
+> Esta página es anterior a siete módulos y no documenta ninguno de
+> ellos: `auth`, `tutoria`, `figuras`, `simulacro`, `time-trial`,
+> `error-del-dia` ni `achievements`.
+>
+> Para el catálogo real y siempre al día: **`/api/docs`** (Swagger, se
+> genera del código). Para entender los flujos:
+> [ARQUITECTURA.md](ARQUITECTURA.md).
+
 ## 🔗 URLs de Documentación
 
 **Swagger UI (NestJS):**

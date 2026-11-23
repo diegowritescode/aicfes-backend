@@ -1,5 +1,12 @@
 # Figuras para las preguntas — plan
 
+> **⚠️ Es un plan, no un inventario. Verificado el 22 nov 2026.**
+>
+> Describe doce plantillas. **Seis están construidas**, elegidas por lo
+> que de verdad usan los cuadernillos. La decisión y sus consecuencias
+> están en
+> [ADR 6](adr/0006-figures-are-drawn-from-parameters.md).
+
 ## El problema
 
 Una parte grande del Saber 11 no se puede plantear solo con texto. Un

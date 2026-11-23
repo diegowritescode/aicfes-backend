@@ -1,5 +1,15 @@
 # 🎓 AICFES Item Generator API
 
+> **⚠️ Tiene secciones duplicadas. Verificado el 22 nov 2026.**
+>
+> "Variables de Entorno" y "Estructura del Proyecto" aparecen más de
+> una vez, con contenido que no coincide entre copias.
+>
+> Las versiones vigentes y verificadas:
+> [INFRAESTRUCTURA.md](INFRAESTRUCTURA.md) para las variables y el
+> despliegue, [ARQUITECTURA.md](ARQUITECTURA.md) para la estructura, y
+> [MODELO-DE-DATOS.md](MODELO-DE-DATOS.md) para el esquema.
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![NestJS](https://img.shields.io/badge/NestJS-10.x-red)](https://nestjs.com)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](https://www.typescriptlang.org)

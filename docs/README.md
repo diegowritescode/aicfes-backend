@@ -99,6 +99,12 @@ decisiones se tomaron en una conversación, la razón se perdió.
 - [README-detallado.md](README-detallado.md) — README largo
   ⚠️ *tiene secciones duplicadas*
 
+## Histórico
+
+[historico/](historico/) guarda documentos de trabajo ya terminado. Se
+conservan porque explican por qué algo quedó como quedó, y están
+aparte porque **no describen el estado actual**.
+
 ## Cómo mantener esto
 
 **Cada afirmación lleva su archivo y línea, o el comando que la

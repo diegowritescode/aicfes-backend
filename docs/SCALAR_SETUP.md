@@ -1,5 +1,14 @@
 # 📋 Configuración y Setup del Proyecto
 
+> **⚠️ El título está mal. Verificado el 22 nov 2026.**
+>
+> Dice "Scalar" y describe Swagger UI. No hay ninguna dependencia
+> `@scalar` en el proyecto; la documentación la sirve `@nestjs/swagger`
+> en `/api/docs`, configurado en `src/main.ts`.
+>
+> Nota de seguridad: esa ruta está **pública en producción**, lo que
+> expone el mapa completo de endpoints.
+
 ## 🔧 Stack Actual
 
 - **Backend**: NestJS 10.x

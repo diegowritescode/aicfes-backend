@@ -1,5 +1,18 @@
 # 🛡️ ENDURECIMIENTO BACKEND - COMPLETADO
 
+> **⚠️ Dice "completado" y no dice cuándo. Verificado el 22 nov 2026.**
+>
+> Un documento que se declara terminado sin fecha de verificación es un
+> documento que nadie puede creer. Lo que sí está comprobado hoy sobre
+> el endurecimiento está en
+> [INFRAESTRUCTURA.md](INFRAESTRUCTURA.md), incluidos **dos defectos
+> abiertos**: `prisma` es dependencia de desarrollo y el arranque la
+> invoca, y una variable que falta en el compose falla en silencio.
+>
+> Y el 22 nov 2026 se encontró una ruta pública que filtraba respuestas
+> correctas, posterior a este documento: ver
+> [ADR 9](adr/0009-every-route-that-spends-or-reveals-requires-a-session.md).
+
 ## 📋 Resumen Ejecutivo
 
 Se han aplicado 8 mejoras de endurecimiento al backend sin afectar la estructura modular existente. El proyecto es ahora robusto, auditable y listo para producción.
