@@ -302,10 +302,39 @@ alguien a meses del ICFES.
 
 ### Vale la pena
 
-**Duelos 1v1 asíncronos.** Retas a un compañero, ambos resuelven las
-mismas 5 preguntas cuando puedan, gana el de mejor tiempo + aciertos.
+**Duelos 1v1 asíncronos** — **backend hecho** (23 nov 2026). Retas a
+un compañero, ambos resuelven las mismas 5 preguntas cuando puedan.
 Es lo que hizo crecer a Duolingo. Social sin la presión de estar en
 vivo.
+
+**Gana quien acierta más; el tiempo solo desempata.** Al revés
+enseñaría a responder rápido y mal, y el ICFES da 64 segundos por
+pregunta justamente porque hay que pensarlas. Empate exacto es
+empate: inventar un desempate decidiría el duelo por algo que ninguno
+hizo mejor.
+
+**Cómo se encuentran: alias buscable** (ADR 32). Era la decisión más
+delicada del producto, porque el público es de 16-18 y lo que permite
+que un estudiante encuentre a otro permite que un adulto encuentre a
+uno de ellos. Por eso en la **misma migración** entraron bloqueo y
+denuncia: una versión con búsqueda y sin bloqueo es una ventana en la
+que un menor acosado no puede defenderse.
+
+La autorización del acudiente (Ley 1581 de 2012) **condiciona la
+búsqueda, no la cuenta**: sin ella la app funciona entera —entrenar,
+simulacros, el peaje, repasar errores— y uno simplemente no aparece.
+Y "bloqueado" y "no buscable" le dicen lo mismo al estudiante, para
+que un bloqueado no pueda deducir quién lo bloqueó.
+
+Las preguntas salen del banco y **viajan sin la respuesta**: es el
+único lugar del producto donde el estudiante tiene motivo para
+mentir sobre su propio puntaje.
+
+**Lo que falta, y es una obligación, no un detalle:** las denuncias se
+acumulan y nadie las lee todavía. Un botón de denuncia que nadie
+atiende es peor que no tenerlo, porque promete algo que no llega.
+Antes de que los duelos lleguen a estudiantes reales tiene que haber
+forma de leer esa cola. Falta también la pantalla en el móvil.
 
 **Racha con perdón** — **hecho** (23 nov 2026). Una racha que se rompe
 a los 30 días destruye la motivación en vez de construirla; Duolingo

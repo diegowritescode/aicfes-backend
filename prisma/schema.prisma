@@ -102,6 +102,31 @@ model User {
   feedbacks       Feedback[]
   debilidades     PerfilDebilidad[]
   tutorias        Tutoria[]
+  /// The name other learners see and search for. Null until chosen,
+  /// because an account is useful without one: nothing outside duels
+  /// reads it.
+  ///
+  /// Lowercased on write so the unique index is case-insensitive. Two
+  /// learners called `Camilo` and `camilo` are indistinguishable on a
+  /// screen, and a duel invitation that reached the wrong person would
+  /// be worse than a rejected alias.
+  alias           String?          @unique
+  /// Whether this account may be found by alias search. A learner can
+  /// turn it off and keep their alias: searchability and identity are
+  /// separate decisions, and the one that exposes a minor to strangers
+  /// is the one that should be revocable without losing the other.
+  aliasBuscable   Boolean          @default(true)
+  /// Confirmation that a parent or guardian authorised this account,
+  /// required by Colombia's Ley 1581 de 2012 for a minor's personal
+  /// data. Null means not given, which is why alias search is gated on
+  /// it rather than on the alias existing.
+  tutorAutorizoEn DateTime?
+  duelosRetador   Duelo[]          @relation("retador")
+  duelosRival     Duelo[]          @relation("rival")
+  bloqueosHechos  Bloqueo[]        @relation("bloqueador")
+  bloqueosRecibidos Bloqueo[]      @relation("bloqueado")
+  denunciasHechas Denuncia[]       @relation("denunciante")
+  denunciasRecibidas Denuncia[]    @relation("denunciado")
 
   @@index([createdAt])
   /// For the one query this pair exists to answer: which subscriptions
@@ -524,4 +549,112 @@ model ConsumoLlm {
   @@index([userId, createdAt])
   @@index([createdAt])
   @@index([operacion])
+}
+
+enum DueloEstado {
+  /// Invited, and the rival has not accepted yet.
+  pendiente
+  /// Both accepted. Each plays when they can.
+  en_curso
+  /// Both finished. `ganadorId` is set, or null for a tie.
+  terminado
+  /// Declined, expired, or cancelled. Kept rather than deleted so a
+  /// learner's own history stays whole.
+  cancelado
+}
+
+/// An asynchronous 1v1 duel over the same five questions.
+///
+/// Asynchronous on purpose: live play needs both learners present at
+/// the same minute, which for someone balancing school and the ICFES
+/// means never. Each plays when they can, and the result is settled
+/// when the second one finishes.
+///
+/// The questions are fixed at creation and stored here, not drawn per
+/// player. A duel where each player got different questions would be
+/// a comparison of luck.
+model Duelo {
+  id          String      @id @default(cuid())
+  /// Who sent the invitation.
+  retador     User        @relation("retador", fields: [retadorId], references: [id], onDelete: Cascade)
+  retadorId   String
+  /// Who received it. Set at creation: an invitation with no recipient
+  /// is an open lobby, which is what alias search exists to avoid.
+  rival       User        @relation("rival", fields: [rivalId], references: [id], onDelete: Cascade)
+  rivalId     String
+  estado      DueloEstado @default(pendiente)
+  /// The five item ids, in the order both players see them.
+  itemIds     String[]
+  /// Correct answers and elapsed seconds per player, written as each
+  /// one finishes. Json rather than columns because a duel is read
+  /// whole and never queried by these numbers.
+  resultadoRetador Json?
+  resultadoRival   Json?
+  /// Null while unfinished, and null for a tie on both counts.
+  ganadorId   String?
+  creadoEn    DateTime    @default(now())
+  /// When the invitation stops being acceptable. An invitation that
+  /// never expires leaves a notification a learner cannot clear.
+  expiraEn    DateTime
+  terminadoEn DateTime?
+
+  /// The two lists a learner opens: duels they started and duels they
+  /// were invited to, newest first.
+  @@index([retadorId, creadoEn])
+  @@index([rivalId, estado])
+}
+
+/// One learner refusing contact from another.
+///
+/// Checked on search, on invitation and on delivery, not only on
+/// search: a block that only hides someone from a list still lets a
+/// held invitation through.
+model Bloqueo {
+  id            String   @id @default(cuid())
+  bloqueador    User     @relation("bloqueador", fields: [bloqueadorId], references: [id], onDelete: Cascade)
+  bloqueadorId  String
+  bloqueado     User     @relation("bloqueado", fields: [bloqueadoId], references: [id], onDelete: Cascade)
+  bloqueadoId   String
+  creadoEn      DateTime @default(now())
+
+  /// One row per pair. Blocking twice is the same as blocking once.
+  @@unique([bloqueadorId, bloqueadoId])
+  @@index([bloqueadorId])
+}
+
+enum DenunciaMotivo {
+  alias_ofensivo
+  acoso
+  suplantacion
+  otro
+}
+
+enum DenunciaEstado {
+  abierta
+  revisada
+  descartada
+}
+
+/// A report about another learner, for a human to read.
+///
+/// Stored rather than emailed because a report that arrives as a
+/// notification gets lost, and because the same alias reported by
+/// three different learners is a signal no single message carries.
+model Denuncia {
+  id             String         @id @default(cuid())
+  denunciante    User           @relation("denunciante", fields: [denuncianteId], references: [id], onDelete: Cascade)
+  denuncianteId  String
+  denunciado     User           @relation("denunciado", fields: [denunciadoId], references: [id], onDelete: Cascade)
+  denunciadoId   String
+  motivo         DenunciaMotivo
+  /// What the learner wrote, trimmed and capped by the route.
+  detalle        String?
+  estado         DenunciaEstado @default(abierta)
+  creadoEn       DateTime       @default(now())
+  revisadoEn     DateTime?
+
+  /// For the one query moderation runs: what is still open, oldest
+  /// first, and everything reported about one account.
+  @@index([estado, creadoEn])
+  @@index([denunciadoId])
 }

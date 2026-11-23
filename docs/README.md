@@ -51,6 +51,7 @@ valor está en saber qué se pensaba entonces.
 | [29](adr/0029-the-dashboard-streams-with-polling-as-the-fallback.md) | El panel se sirve por SSE, con sondeo de respaldo |
 | [30](adr/0030-the-web-client-is-a-static-bundle-with-headers-per-location.md) | El cliente web es un bundle estático, con encabezados por location |
 | [31](adr/0031-contrarreloj-draws-from-the-bank-entrenar-generates.md) | Contrarreloj saca del banco, entrenar genera |
+| [32](adr/0032-duels-are-found-by-alias-with-moderation-in-the-same-migration.md) | Los duelos se buscan por alias, con moderación en la misma migración |
 
 Del 11 al 18 y del 25 al 30 son **retroactivos**: decisiones que se
 tomaron en el código y nunca se escribieron. Se recuperaron del
