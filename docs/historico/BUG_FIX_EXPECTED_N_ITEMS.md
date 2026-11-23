@@ -27,7 +27,7 @@ OpenAI copiaba literalmente el parámetro `"plantilla": ""` del input del usuari
 ## ✅ SOLUCIONES IMPLEMENTADAS
 
 ### 1. Mejorado el mensaje correctivo para OpenAI
-**Archivo:** [src/items/services/item-generator.service.ts](src/items/services/item-generator.service.ts)
+**Archivo:** [src/items/services/item-generator.service.ts](../../src/items/services/item-generator.service.ts)
 
 Se agregó detección específica para errores de "Plantilla muy corta" con mensajes explícitos:
 
@@ -43,11 +43,11 @@ Devuelve plantillas DESCRIPTIVAS de mínimo 3 caracteres.`;
 
 ### 2. Actualizado el esquema de salida en todos los prompts
 **Archivos actualizado (5 total):**
-- ✅ [prompts/MAT/user_template.txt](prompts/MAT/user_template.txt)
-- ✅ [prompts/LC/user_template.txt](prompts/LC/user_template.txt)
-- ✅ [prompts/CN/user_template.txt](prompts/CN/user_template.txt)
-- ✅ [prompts/SOC/user_template.txt](prompts/SOC/user_template.txt)
-- ✅ [prompts/ING/user_template.txt](prompts/ING/user_template.txt)
+- ✅ [prompts/MAT/user_template.txt](../../prompts/MAT/user_template.txt)
+- ✅ [prompts/LC/user_template.txt](../../prompts/LC/user_template.txt)
+- ✅ [prompts/CN/user_template.txt](../../prompts/CN/user_template.txt)
+- ✅ [prompts/SOC/user_template.txt](../../prompts/SOC/user_template.txt)
+- ✅ [prompts/ING/user_template.txt](../../prompts/ING/user_template.txt)
 
 **Cambio de antes:**
 ```json
@@ -60,7 +60,7 @@ Devuelve plantillas DESCRIPTIVAS de mínimo 3 caracteres.`;
 ```
 
 ### 3. Mejorado el mensaje correctivo para cantidad exacta de ítems
-**Archivo:** [src/items/services/item-generator.service.ts](src/items/services/item-generator.service.ts)
+**Archivo:** [src/items/services/item-generator.service.ts](../../src/items/services/item-generator.service.ts)
 
 Se reescribió el mensaje correctivo con formato más explícito y conteo visual:
 

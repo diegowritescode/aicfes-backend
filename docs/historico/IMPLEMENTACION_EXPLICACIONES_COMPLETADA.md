@@ -11,32 +11,32 @@ Se ha implementado exitosamente el sistema de **explicaciones pedagógicas para 
 ## 🔧 CAMBIOS IMPLEMENTADOS
 
 ### 1. **Schema Zod** ✅
-**Archivo:** [src/items/schemas/item.schema.ts](src/items/schemas/item.schema.ts)
+**Archivo:** [src/items/schemas/item.schema.ts](../../src/items/schemas/item.schema.ts)
 - Agregado `ExplicacionesSchema`: objeto con propiedades A, B, C, D
 - Validación: mínimo 30, máximo 300 caracteres por explicación
 - Integrado al `ItemSchema` como campo requerido
 
 ### 2. **Base de Datos (Prisma)** ✅
-**Archivo:** [prisma/schema.prisma](prisma/schema.prisma)
+**Archivo:** [prisma/schema.prisma](../../prisma/schema.prisma)
 - Agregado campo `explicaciones Json?` al modelo `GeneratedItem`
 - Nullable para compatibilidad con datos existentes
 
-**Archivo:** [prisma/migrations/20260113201500_add_explicaciones_to_generated_item/migration.sql](prisma/migrations/20260113201500_add_explicaciones_to_generated_item/migration.sql)
+**Archivo:** [prisma/migrations/20260113201500_add_explicaciones_to_generated_item/migration.sql](../../prisma/migrations/20260113201500_add_explicaciones_to_generated_item/migration.sql)
 - Migration ejecutada exitosamente
 - BD sincronizada con schema
 
 ### 3. **Prompts OpenAI** ✅
 **Archivos actualizados (10 total):**
-- ✅ [prompts/MAT/developer.txt](prompts/MAT/developer.txt) - Sección E) Explicaciones
-- ✅ [prompts/MAT/user_template.txt](prompts/MAT/user_template.txt) - ESQUEMA actualizado
-- ✅ [prompts/LC/developer.txt](prompts/LC/developer.txt)
-- ✅ [prompts/LC/user_template.txt](prompts/LC/user_template.txt)
-- ✅ [prompts/CN/developer.txt](prompts/CN/developer.txt)
-- ✅ [prompts/CN/user_template.txt](prompts/CN/user_template.txt)
-- ✅ [prompts/SOC/developer.txt](prompts/SOC/developer.txt)
-- ✅ [prompts/SOC/user_template.txt](prompts/SOC/user_template.txt)
-- ✅ [prompts/ING/developer.txt](prompts/ING/developer.txt)
-- ✅ [prompts/ING/user_template.txt](prompts/ING/user_template.txt)
+- ✅ [prompts/MAT/developer.txt](../../prompts/MAT/developer.txt) - Sección E) Explicaciones
+- ✅ [prompts/MAT/user_template.txt](../../prompts/MAT/user_template.txt) - ESQUEMA actualizado
+- ✅ [prompts/LC/developer.txt](../../prompts/LC/developer.txt)
+- ✅ [prompts/LC/user_template.txt](../../prompts/LC/user_template.txt)
+- ✅ [prompts/CN/developer.txt](../../prompts/CN/developer.txt)
+- ✅ [prompts/CN/user_template.txt](../../prompts/CN/user_template.txt)
+- ✅ [prompts/SOC/developer.txt](../../prompts/SOC/developer.txt)
+- ✅ [prompts/SOC/user_template.txt](../../prompts/SOC/user_template.txt)
+- ✅ [prompts/ING/developer.txt](../../prompts/ING/developer.txt)
+- ✅ [prompts/ING/user_template.txt](../../prompts/ING/user_template.txt)
 
 **Cambios clave:**
 - Sección "Explicaciones por opción (CRÍTICO)" agregada a todos los developer.txt
@@ -44,17 +44,17 @@ Se ha implementado exitosamente el sistema de **explicaciones pedagógicas para 
 - Instrucciones precisas: opción correcta comienza con ✅, incorrectas con ❌
 
 ### 4. **Servicio Normalizer** ✅
-**Archivo:** [src/items/services/normalizer.service.ts](src/items/services/normalizer.service.ts)
+**Archivo:** [src/items/services/normalizer.service.ts](../../src/items/services/normalizer.service.ts)
 - Agregado trimming para explicaciones (máximo 300 caracteres)
 - Protección contra explicaciones demasiado largas
 
 ### 5. **Servicio Persistence** ✅
-**Archivo:** [src/persistence/persistence.service.ts](src/persistence/persistence.service.ts)
+**Archivo:** [src/persistence/persistence.service.ts](../../src/persistence/persistence.service.ts)
 - Mapeado campo `explicaciones` en `saveGeneratedItems()`
 - Guardado automático en BD con cada item generado
 
 ### 6. **Controlador & Documentación** ✅
-**Archivo:** [src/items/items.controller.ts](src/items/items.controller.ts)
+**Archivo:** [src/items/items.controller.ts](../../src/items/items.controller.ts)
 - Actualizado esquema Swagger para incluir `explicaciones`
 - Documentación de API reflejando la nueva respuesta
 
