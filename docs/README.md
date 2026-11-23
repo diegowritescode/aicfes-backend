@@ -8,6 +8,7 @@
 | entender cómo está construido | [ARQUITECTURA.md](ARQUITECTURA.md) |
 | escribir una consulta o una migración | [MODELO-DE-DATOS.md](MODELO-DE-DATOS.md) |
 | desplegar, o entender el servidor | [INFRAESTRUCTURA.md](INFRAESTRUCTURA.md) |
+| atender una denuncia de un estudiante | [MODERACION.md](MODERACION.md) |
 | saber por qué algo es como es | [adr/](adr/) |
 | arrancar el proyecto | [../README.md](../README.md) |
 
@@ -52,6 +53,7 @@ valor está en saber qué se pensaba entonces.
 | [30](adr/0030-the-web-client-is-a-static-bundle-with-headers-per-location.md) | El cliente web es un bundle estático, con encabezados por location |
 | [31](adr/0031-contrarreloj-draws-from-the-bank-entrenar-generates.md) | Contrarreloj saca del banco, entrenar genera |
 | [32](adr/0032-duels-are-found-by-alias-with-moderation-in-the-same-migration.md) | Los duelos se buscan por alias, con moderación en la misma migración |
+| [33](adr/0033-the-moderation-queue-is-read-with-a-server-side-secret.md) | La cola de moderación se lee con un secreto del servidor |
 
 Del 11 al 18 y del 25 al 30 son **retroactivos**: decisiones que se
 tomaron en el código y nunca se escribieron. Se recuperaron del
@@ -77,6 +79,12 @@ decisiones se tomaron en una conversación, la razón se perdió.
 - [BLOQUEO-NATIVO.md](BLOQUEO-NATIVO.md) — qué hace falta para bloquear
   apps de verdad, con el código del módulo verificado y las políticas
   de Play; incluye por qué las apps las elige el usuario y no el código
+
+**Los duelos y la seguridad de los menores**
+- [MODERACION.md](MODERACION.md) — cómo leer y atender la cola de
+  denuncias, con el secreto que hay que poner en el servidor primero;
+  incluye por qué la cola queda cerrada si falta y qué distingue tres
+  quejas de una persona de una de tres personas
 
 **El producto y el mercado**
 - [VISION_PRODUCTO.md](VISION_PRODUCTO.md) — el problema real, cada

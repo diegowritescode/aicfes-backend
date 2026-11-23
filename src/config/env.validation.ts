@@ -16,6 +16,10 @@ const envSchema = z.object({
   MAX_RETRIES: z.string().default('2'),
   BODY_LIMIT: z.string().default('1mb'),
   CORS_ORIGIN: z.string().default('*'),
+  /* Optional, and the moderation routes are closed when it is absent
+     rather than open. Set on the server over SSH like the other
+     secrets. */
+  MODERACION_TOKEN: z.string().optional(),
 });
 
 export function validateEnv(config: Record<string, any>) {

@@ -330,11 +330,32 @@ Las preguntas salen del banco y **viajan sin la respuesta**: es el
 único lugar del producto donde el estudiante tiene motivo para
 mentir sobre su propio puntaje.
 
-**Lo que falta, y es una obligación, no un detalle:** las denuncias se
-acumulan y nadie las lee todavía. Un botón de denuncia que nadie
-atiende es peor que no tenerlo, porque promete algo que no llega.
-Antes de que los duelos lleguen a estudiantes reales tiene que haber
-forma de leer esa cola. Falta también la pantalla en el móvil.
+**La cola de denuncias ya se puede leer** (ADR 33, 23 nov 2026). Era
+la obligación abierta del punto anterior: un botón de denuncia que
+nadie atiende es peor que no tenerlo, porque promete algo que no
+llega. Hay cola ordenada por antigüedad —la que lleva tres días
+esperando es la que le falló a quien la mandó— y cada fila dice
+**cuántas personas distintas** denunciaron esa cuenta, porque tres
+quejas de una persona y una de tres personas se ven iguales en un
+total y no son lo mismo.
+
+La acción es **sacar de búsqueda, no borrar**: el estudiante conserva
+cuenta, historial y nombre, y deja de ser encontrable. Borrarle la
+cuenta a un menor por una denuncia que nadie verificó no es una
+decisión para automatizar, y ser invisible corta el acoso igual,
+porque todo duelo empieza con una búsqueda.
+
+Se entra con un secreto puesto en el servidor por SSH, no con un rol
+en la base: la fila que da el permiso viviría en la misma base que se
+está moderando. **Sin ese secreto configurado la cola queda cerrada**,
+no abierta — lo contrario filtraría en silencio una cola de denuncias
+de menores.
+
+**Lo que todavía falta:** alguien tiene que acordarse de mirar. Hay un
+`GET /moderacion/pendientes` que responde en una petición si la cola
+está siendo atendida, pero nada lo pregunta solo y nadie recibe
+aviso. Una cola legible y sin leer es apenas un paso mejor que una
+cola ilegible.
 
 **Racha con perdón** — **hecho** (23 nov 2026). Una racha que se rompe
 a los 30 días destruye la motivación en vez de construirla; Duolingo
