@@ -113,6 +113,54 @@ impedir *desinstalar*.
 
 ---
 
+## Verificado en un build real (23 nov 2026)
+
+El módulo **compila** con Expo 58 y React Native 0.88. Primera
+pregunta contestada: el módulo de diez días construye.
+
+El APK de desarrollo pesa **271 MB** contra los 95 MB del de
+producción. Es normal — un development build trae el cliente de
+desarrollo y símbolos — pero conviene no confundirlos al instalar.
+
+Permisos que el módulo trae en su propio manifest, leídos del APK:
+
+| Permiso | Está | Nota |
+|---|---|---|
+| `PACKAGE_USAGE_STATS` | sí | detectar qué app está delante |
+| `SYSTEM_ALERT_WINDOW` | sí | dibujar el overlay |
+| `FOREGROUND_SERVICE` | sí | y su variante `SPECIAL_USE` |
+| `RECEIVE_BOOT_COMPLETED` | sí | sobrevivir a un reinicio |
+| `BIND_ACCESSIBILITY_SERVICE` | **no** | el default deja fuera el trámite de Play |
+| `QUERY_ALL_PACKAGES` | **no** | Play lo restringe; el módulo usa `<queries>` acotado |
+| `BIND_DEVICE_ADMIN` | **sí** | ver abajo |
+
+### El device admin que no pedimos
+
+El módulo declara **siempre** un receptor de device admin, con este
+comentario en su manifest:
+
+> "Device admin with no policy: an active admin cannot be force-stopped
+> from Settings and must be deactivated before the app can be
+> uninstalled"
+
+Eso es justo lo que la política de Play permite solo *"authorized by a
+parent or guardian through a parental control app"*. No hay opción del
+plugin para quitarlo.
+
+**El matiz que lo salva:** declararlo no es activarlo. El paso
+`deviceAdmin` es `required = false` salvo para `appRemovalProtection`
+o un perfil de menor
+(`PermissionSteps.kt:24`). Mientras el onboarding no lo pida, el
+receptor existe y nunca se activa.
+
+**Lo que esto obliga:**
+
+1. El onboarding **no debe pedir** el paso `deviceAdmin`.
+2. Si Play pregunta por el permiso declarado, la respuesta honesta es
+   que viene de una dependencia y la app no lo usa.
+3. Si algún día se quiere protección contra desinstalación, eso es
+   otro producto: hace falta flujo de padre o tutor.
+
 ## El riesgo del módulo
 
 | | |
