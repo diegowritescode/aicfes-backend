@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { desglosar, resumirDesglose } from './xp-desglose';
+import { rachaConPerdon, diasDesdeElPerdon } from './utils/racha-perdon';
 import { PrismaService } from '../persistence/prisma.service';
 import {
   Area,
@@ -939,7 +940,20 @@ export class DashboardService {
       }
     }
 
-    const streak = calculateStreak(studyDates, todayDate);
+    /* The streak, with one missed day a month forgiven. A streak that
+       snaps after one bad day punishes the learner for exactly what
+       the product exists to help with — see ADR 10. */
+    const base = calculateStreak(studyDates, todayDate);
+    const perdonada = rachaConPerdon(
+      studyDates,
+      todayDate,
+      diasDesdeElPerdon(studyDates, todayDate),
+    );
+    const streak = {
+      ...base,
+      currentDays: Math.max(base.currentDays, perdonada.dias),
+      perdonUsado: perdonada.perdonUsado,
+    };
 
     const xpAggregate = await this.prisma.xPEvent.aggregate({
       where: { userId: user.id },
@@ -1129,7 +1143,20 @@ export class DashboardService {
       }
     }
 
-    const streak = calculateStreak(studyDates, todayDate);
+    /* The streak, with one missed day a month forgiven. A streak that
+       snaps after one bad day punishes the learner for exactly what
+       the product exists to help with — see ADR 10. */
+    const base = calculateStreak(studyDates, todayDate);
+    const perdonada = rachaConPerdon(
+      studyDates,
+      todayDate,
+      diasDesdeElPerdon(studyDates, todayDate),
+    );
+    const streak = {
+      ...base,
+      currentDays: Math.max(base.currentDays, perdonada.dias),
+      perdonUsado: perdonada.perdonUsado,
+    };
 
     const matSessions = sessions.filter((session) => session.area === 'MAT').length;
     const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
