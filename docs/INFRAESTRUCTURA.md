@@ -236,7 +236,11 @@ grep AICFES_API_TAG .env
 
 # 2. Poner la nueva (el SHA del commit, no :latest —
 #    una etiqueta móvil no dice a qué volver)
-sed -i 's/^AICFES_API_TAG=.*/AICFES_API_TAG=<sha>/' .env
+# El SHA COMPLETO, 40 caracteres. El CI etiqueta las imágenes así, y
+# el abreviado no existe en el registro: `docker compose up` falla con
+# "failed to resolve reference" y deja corriendo la versión anterior.
+# Obtenerlo con: git rev-parse origin/main
+sed -i 's/^AICFES_API_TAG=.*/AICFES_API_TAG=<sha-completo-de-40>/' .env
 
 # 3. Levantar solo la API
 docker compose up -d api
@@ -252,7 +256,7 @@ Las migraciones corren en el arranque del contenedor
 ### Volver atrás
 
 ```bash
-sed -i 's/^AICFES_API_TAG=.*/AICFES_API_TAG=<sha-anterior>/' .env
+sed -i 's/^AICFES_API_TAG=.*/AICFES_API_TAG=<sha-anterior-completo>/' .env
 docker compose up -d api
 ```
 
