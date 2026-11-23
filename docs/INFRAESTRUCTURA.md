@@ -210,11 +210,26 @@ La imagen de la web se construye en **otro repo**.
 
 ## Runbook
 
+### Dónde vive
+
+| | |
+|---|---|
+| Servidor | `aitera-vps` en `~/.ssh/config` (usuario `diego`) |
+| Directorio | `/home/diego/apps/aicfes/deploy` |
+| Compose | `/home/diego/apps/aicfes/deploy/compose.yml` |
+
+El mismo VPS corre otros proyectos, así que los comandos de compose
+tienen que ejecutarse **desde ese directorio** o apuntar a ese archivo:
+`docker compose ls` los lista todos.
+
+Esto no estaba escrito en ninguna parte y hubo que buscarlo. Si el
+servidor cambia, cambiar esta tabla.
+
 ### Desplegar una versión nueva
 
 ```bash
-# En el VPS, donde vive deploy/.env
-cd /ruta/del/despliegue
+ssh aitera-vps
+cd /home/diego/apps/aicfes/deploy
 
 # 1. Ver qué etiqueta hay ahora, para poder volver
 grep AICFES_API_TAG .env
@@ -224,10 +239,10 @@ grep AICFES_API_TAG .env
 sed -i 's/^AICFES_API_TAG=.*/AICFES_API_TAG=<sha>/' .env
 
 # 3. Levantar solo la API
-docker compose -f compose.yml up -d api
+docker compose up -d api
 
 # 4. Confirmar que arrancó y que la base respondió
-docker compose -f compose.yml logs -f api
+docker compose logs -f api
 curl -s https://<API_HOST>/api/health
 ```
 
@@ -238,7 +253,7 @@ Las migraciones corren en el arranque del contenedor
 
 ```bash
 sed -i 's/^AICFES_API_TAG=.*/AICFES_API_TAG=<sha-anterior>/' .env
-docker compose -f compose.yml up -d api
+docker compose up -d api
 ```
 
 Eso devuelve el código. **No devuelve el esquema**: si la versión nueva
@@ -255,24 +270,38 @@ respaldo *es* el plan de reversa.
 Manualmente:
 
 ```bash
-docker compose -f compose.yml exec -T postgres \
-  pg_dump -U postgres aicfes | gzip > aicfes-$(date +%F).sql.gz
+# El usuario es `aicfes`, no `postgres` (POSTGRES_USER en compose.yml).
+# Con `postgres` falla: role "postgres" does not exist — y falla DESPUÉS
+# de crear el archivo, así que deja un .gz de 20 bytes que parece un
+# respaldo.
+docker compose exec -T postgres \
+  pg_dump -U aicfes aicfes | gzip > ~/aicfes-$(date +%F).sql.gz
+
+# Comprobar que sirve, no sólo que existe. Un pg_dump que falla deja
+# igualmente un archivo.
+ls -lh ~/aicfes-*.sql.gz
+gunzip -c ~/aicfes-$(date +%F).sql.gz | grep -c "CREATE TABLE"   # ≥18
 ```
 
 Un respaldo que nunca se restauró no se sabe si sirve. Conviene probar
 la restauración en una base aparte antes de necesitarla.
 
+El 23 nov 2026 el primer intento de respaldo de este runbook falló por
+usar `-U postgres`, y produjo un `.gz` de 20 bytes. El `ls` lo
+delató. Esa es la razón de las dos comprobaciones de arriba: aquí el
+fallo no es que no haya archivo, es que lo hay y está vacío.
+
 ### Mirar qué pasa
 
 ```bash
 # Logs (json-file, 10 MB × 3 por servicio)
-docker compose -f compose.yml logs --tail=100 api
+docker compose logs --tail=100 api
 
 # Salud de los contenedores
-docker compose -f compose.yml ps
+docker compose ps
 
 # La base, desde dentro
-docker compose -f compose.yml exec postgres psql -U postgres -d aicfes
+docker compose exec postgres psql -U aicfes -d aicfes
 ```
 
 **`/api/health` no consulta la base**: puede responder 200 con Postgres
