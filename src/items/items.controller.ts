@@ -1,5 +1,6 @@
 import { SesionRequeridaGuard } from '../common/guards/sesion-requerida.guard';
 import { CuotaGuard } from '../common/guards/cuota.guard';
+import { LoteOfflineService } from './services/lote-offline.service';
 import { Controller, Post, Body, Req, Get, Query, Param, Delete, HttpException, HttpStatus, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
@@ -47,7 +48,8 @@ export class ItemsController {
     private config: ConfigService,
     private persistence: PersistenceService,
     private bank: ItemBankService,
-    private dashboardService: DashboardService
+    private dashboardService: DashboardService,
+    private loteService: LoteOfflineService
   ) {}
 
   private pickString(value: unknown) {
@@ -592,6 +594,65 @@ export class ItemsController {
    * GET /api/items
    * Lista ítems generados con filtros opcionales
    */
+  /**
+   * GET /api/items/lote-offline
+   *
+   * Questions for a phone to keep. Drawn from the verified bank, so it
+   * costs no model requests and needs no quota — unlike generate,
+   * which is why this route has SesionRequeridaGuard and not
+   * CuotaGuard.
+   *
+   * Weighted toward what this learner gets wrong. `excluir` is the ids
+   * the device already holds, so a refresh tops the pool up instead of
+   * re-downloading what is already there: on a prepaid line that is
+   * the whole point.
+   */
+  @Get('lote-offline')
+  @UseGuards(SesionRequeridaGuard)
+  @ApiOperation({ summary: 'Preguntas para usar sin conexión' })
+  @ApiQuery({ name: 'total', required: false, type: Number })
+  @ApiQuery({
+    name: 'excluir',
+    required: false,
+    type: String,
+    description: 'Ids separados por coma que el dispositivo ya tiene',
+  })
+  @ApiResponse({ status: 200, description: 'Preguntas con su respuesta y explicación.' })
+  async loteOffline(
+    @Req() req: any,
+    @Query('total') totalStr?: string,
+    @Query('excluir') excluirStr?: string,
+  ) {
+    const userId = this.getUserId(req);
+    if (!userId) {
+      return {
+        ok: false,
+        items: [],
+        error: { code: 'USER_ID_REQUIRED', message: 'Inicia sesión.' },
+        meta: {},
+      };
+    }
+
+    /* A bad `total` falls back to the default rather than erroring.
+       Prisma throws on NaN, which would surface as a 500 for a typo in
+       a query string. */
+    const pedido = Number(totalStr);
+    const total = Number.isFinite(pedido) && pedido > 0 ? Math.floor(pedido) : undefined;
+
+    const excluir = (excluirStr ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const items = await this.loteService.paraUsuario({ userId, total, excluir });
+
+    return {
+      ok: true,
+      items,
+      meta: { count: items.length, pedidas: total ?? null },
+    };
+  }
+
   /* Signed in, because this returns bank items in full.
      Anonymous access to the bank is handing out the material the
      product is built on. */

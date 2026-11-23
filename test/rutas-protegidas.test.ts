@@ -51,6 +51,10 @@ test('las rutas que exponen el banco exigen sesión', () => {
   const rutas = [
     "@Get('requests/failed')",
     "@Get('requests')",
+    /* The offline pool carries `respuesta_correcta`, because the toll
+       marks the attempt on a device with no network. Anonymous access
+       to it would hand out answer keys. */
+    "@Get('lote-offline')",
     "@Get('requests/:requestId')",
     "@Get('requests/:requestId/status')",
     "@Delete('requests/:requestId/cancel')",

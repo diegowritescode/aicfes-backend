@@ -7,6 +7,7 @@ import { NormalizerService } from './services/normalizer.service';
 import { ValidatorsService } from './services/validators.service';
 import { AnswerVerifierService } from './services/answer-verifier.service';
 import { ItemBankService } from './services/item-bank.service';
+import { LoteOfflineService } from './services/lote-offline.service';
 import { ReferenciaService } from './services/referencia.service';
 import { VerificadorClaudeService } from './services/verificador-claude.service';
 import { PersistenceModule } from '../persistence/persistence.module';
@@ -16,17 +17,7 @@ import { DashboardModule } from '../dashboard/dashboard.module';
 @Module({
   imports: [PersistenceModule, DashboardModule, CalidadModule],
   controllers: [ItemsController],
-  providers: [
-    PromptLoaderService,
-    OpenaiService,
-    ItemGeneratorService,
-    NormalizerService,
-    ValidatorsService,
-    AnswerVerifierService,
-    ItemBankService,
-    ReferenciaService,
-    VerificadorClaudeService,
-  ],
+  providers: [PromptLoaderService, OpenaiService, ItemGeneratorService, NormalizerService, ValidatorsService, AnswerVerifierService, ItemBankService, ReferenciaService, VerificadorClaudeService, LoteOfflineService],
   exports: [ItemGeneratorService, OpenaiService, ItemBankService, ReferenciaService],
 })
 export class ItemsModule {}
