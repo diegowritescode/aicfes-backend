@@ -555,4 +555,10 @@ Para que la ausencia de dato no se confunda con falta de búsqueda:
 - `duo/yancey.pdf` — paper KDD 2020 de Duolingo (9 pp.)
 - `dane/tich2025.pdf` y `dane/tich2025.txt` — boletín DANE TIC 2025 (46 pp.)
 - `edu/`, `dane_x/`, `enph/`, `icfesres/` — PDFs y XLSX de DANE/MEN/ICFES
-- fichas `pg_*.html` de Play Store y `web_*.html` de plataformas, más los extractores `parse.py`, `scripts/pdftxt.py`, `scripts/srch.py`
+- fichas `pg_*.html` de Play Store y `web_*.html` de plataformas, más
+  los extractores que se usaron para leerlas
+
+**Nota:** esos archivos vivían en el scratchpad de la sesión y ya se
+borraron; no están en este repo y las rutas de arriba no existen aquí.
+Lo que vale es lo escrito en este documento, con sus URLs. Para
+repetir la investigación hay que volver a las fuentes.

@@ -30,7 +30,11 @@ export class CuotaGuard implements CanActivate {
     if (!userId) return true; // SesionRequeridaGuard owns this case.
 
     const pedidas = this.cuantasPide(req?.body);
-    const estado = await this.cuota.puedeGenerar(userId, pedidas);
+    /* The plan decides the cap, and it is read rather than assumed.
+       Before this, every call fell through to the `'gratis'` default
+       and a paying learner got the free allowance. */
+    const plan = await this.cuota.planDe(userId);
+    const estado = await this.cuota.puedeGenerar(userId, pedidas, plan);
 
     if (!estado.permitido) {
       this.log.log(
@@ -44,8 +48,8 @@ export class CuotaGuard implements CanActivate {
             code: 'CUOTA_AGOTADA',
             message:
               estado.gastado >= estado.tope
-                ? 'Llegó al límite de práctica de hoy. Vuelva mañana para seguir.'
-                : `Son demasiadas preguntas para lo que le queda hoy. Puede pedir hasta ${this.cuota.preguntasRestantes(estado)}.`,
+                ? 'Llegaste al límite de práctica de hoy. Mañana sigues.'
+                : `Son demasiadas preguntas para lo que te queda hoy. Puedes pedir hasta ${this.cuota.preguntasRestantes(estado)}.`,
             restanteHoy: this.cuota.preguntasRestantes(estado),
             reinicia: estado.reinicia.toISOString(),
           },

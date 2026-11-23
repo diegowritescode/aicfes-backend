@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CostosService } from './costos.service';
+import { PrismaService } from '../persistence/prisma.service';
+import { planVigente, type Plan } from './plan';
 
 /**
  * How much a learner may spend in a day.
@@ -21,7 +23,11 @@ import { CostosService } from './costos.service';
  * trickling back in a way nobody can predict.
  */
 
-export type Plan = 'gratis' | 'pago' | 'semilla';
+/* Re-exported so the many callers that import `Plan` from here keep
+   working. The decision of which plan is in force lives in `plan.ts`,
+   as a pure function, because a row reading `pago` with a date in the
+   past is a lapsed subscription and that rule deserves tests. */
+export type { Plan } from './plan';
 
 export interface EstadoCuota {
   readonly permitido: boolean;
@@ -43,7 +49,30 @@ export class CuotaService {
   constructor(
     private readonly costos: CostosService,
     private readonly config: ConfigService,
+    private readonly prisma: PrismaService,
   ) {}
+
+  /**
+   * The plan this account is actually on.
+   *
+   * Read here rather than passed in by the caller, because every
+   * caller passing it is every caller able to forget — and the
+   * forgotten value was the whole bug: `plan` existed as a type with a
+   * `'gratis'` default parameter, and nothing ever supplied anything
+   * else, so a paying learner got the free allowance.
+   *
+   * A missing row answers `gratis`. That is not a guess: a request
+   * whose user does not exist should be metered at the tightest cap,
+   * not the loosest.
+   */
+  async planDe(userId: string): Promise<Plan> {
+    const fila = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { plan: true, planHasta: true },
+    });
+    if (!fila) return 'gratis';
+    return planVigente(fila);
+  }
 
   private tope(plan: Plan): number {
     /* Defaults, in dollars per day. The free tier is set near what a

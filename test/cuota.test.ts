@@ -36,7 +36,11 @@ function servicio(opciones: {
       return undefined;
     },
   };
-  return new CuotaService(costos as never, config as never);
+  /* Prisma is stubbed to answer "no such user", which the service reads
+     as `gratis`. These tests are about the caps, and the plan they
+     apply to is passed in explicitly below. */
+  const prisma = { user: { findUnique: async () => null } };
+  return new CuotaService(costos as never, config as never, prisma as never);
 }
 
 function contexto(req: unknown) {

@@ -768,7 +768,8 @@ investigación** al escribir esto. No estimar: verificar.
 
 `expo-secure-store` guarda la sesión y nada más. La caché de
 react-query vive en memoria y muere al cerrar la app
-(`src/core/http/consultas.ts`): no hay `persistQueryClient`, ni
+(`aicfes-frontend/movil/src/core/http/consultas.ts`): no hay
+`persistQueryClient`, ni
 AsyncStorage, ni SQLite.
 
 Un estudiante en el bus, en un colegio sin WiFi, o con los datos

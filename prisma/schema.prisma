@@ -58,12 +58,35 @@ enum MissionRecurrence {
   weekly
 }
 
+/// What a learner's daily allowance is, which is the only thing a plan
+/// changes today. The names match `Plan` in cuota.service.ts, because
+/// two spellings of the same idea is how they drift apart.
+///
+/// `semilla` is for the accounts that stock the bank — filling it is a
+/// few hundred items in an afternoon, which is exactly the shape the
+/// free cap exists to stop. It raises the ceiling; it does not remove
+/// it.
+enum Plan {
+  gratis
+  pago
+  semilla
+}
+
 model User {
   id              String           @id @default(cuid())
   email           String?          @unique
   passwordHash    String?
   passwordSalt    String?
   timezone        String           @default("UTC")
+  /// Defaults to `gratis`, so an account that nobody has touched is
+  /// metered: a plan that had to be set before it meant anything would
+  /// make every new row unlimited until someone remembered.
+  plan            Plan             @default(gratis)
+  /// When the paid plan lapses. Null on a free account, and null on a
+  /// paid one that does not expire. Checked rather than trusted: a row
+  /// that says `pago` with a date in the past is a lapsed subscription,
+  /// not a paying learner.
+  planHasta       DateTime?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   studySessions   StudySession[]
@@ -75,6 +98,10 @@ model User {
   tutorias        Tutoria[]
 
   @@index([createdAt])
+  /// For the one query this pair exists to answer: which subscriptions
+  /// have run out. Declared here rather than only in SQL — an index
+  /// Prisma cannot see is an index Prisma will drop.
+  @@index([plan, planHasta])
   simulacros    Simulacro[]
 
 }
