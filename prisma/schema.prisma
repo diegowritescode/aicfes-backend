@@ -43,6 +43,12 @@ enum StudyMode {
   generacion_libre
   contrarreloj
   test
+  /// A block of questions the study toll required before unblocking a
+  /// distracting app. Its own mode rather than reusing `test`, because
+  /// the whole point of the feature is to measure whether it works:
+  /// a toll block and a voluntary practice session are not the same
+  /// behaviour and must not average together.
+  peaje
 }
 
 enum MissionType {

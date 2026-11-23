@@ -1,0 +1,13 @@
+-- A block of questions the study toll required before unblocking a
+-- distracting app.
+--
+-- Its own mode rather than reusing `test`: the point of the toll is to
+-- find out whether it works, and a block someone was required to do
+-- is not the same behaviour as practice they chose. Averaged together,
+-- neither number means anything.
+--
+-- Adding a value to an enum is not reversible in PostgreSQL, which is
+-- the usual reason to hesitate. Here the value is additive and nothing
+-- reads the enum exhaustively, so an older binary meeting a `peaje`
+-- row would carry it as an unknown string rather than fail.
+ALTER TYPE "StudyMode" ADD VALUE IF NOT EXISTS 'peaje';
