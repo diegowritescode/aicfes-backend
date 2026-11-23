@@ -30,6 +30,17 @@ export interface ErrorDelDia {
   readonly pregunta: string;
   readonly contexto: string | null;
   readonly opciones: Record<string, string>;
+  /**
+   * The right answer, and why each option is what it is.
+   *
+   * Sent deliberately, unlike in a sitting. This card is practice with
+   * immediate feedback: the learner answers and finds out at once, the
+   * same contract as training. Withholding it would mean the card can
+   * only send them somewhere else to answer — which is exactly the
+   * bug this replaced.
+   */
+  readonly respuesta_correcta: string;
+  readonly explicaciones: Record<string, string> | null;
   /** Why this one: the topic, or the date it was missed. */
   readonly motivo: string;
   /** True once answered today, so the card can show it is done. */
@@ -110,6 +121,8 @@ export class ErrorDelDiaService {
       pregunta: item.pregunta,
       contexto: item.contexto ?? null,
       opciones: item.opciones as Record<string, string>,
+      respuesta_correcta: item.respuesta_correcta,
+      explicaciones: (item.explicaciones as Record<string, string> | null) ?? null,
       motivo: 'La falló antes. A ver si ahora sí.',
       resueltoHoy: await this.yaRespondioHoy(userId, item.id, timeZone),
     };
@@ -133,6 +146,8 @@ export class ErrorDelDiaService {
       pregunta: item.pregunta,
       contexto: item.contexto ?? null,
       opciones: item.opciones as Record<string, string>,
+      respuesta_correcta: item.respuesta_correcta,
+      explicaciones: (item.explicaciones as Record<string, string> | null) ?? null,
       motivo: `${tema.tema.replace(/-/g, ' ')} le está costando.`,
       resueltoHoy: false,
     };

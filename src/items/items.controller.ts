@@ -592,7 +592,11 @@ export class ItemsController {
    * GET /api/items
    * Lista ítems generados con filtros opcionales
    */
+  /* Signed in, because this returns bank items in full.
+     Anonymous access to the bank is handing out the material the
+     product is built on. */
   @Get()
+  @UseGuards(SesionRequeridaGuard)
   @ApiOperation({
     summary: 'Listar ítems generados',
     description:
@@ -652,7 +656,10 @@ export class ItemsController {
    * GET /api/items/requests
    * Lista requests de generación (para debugging)
    */
+  /* Signed in: these are generation diagnostics, not learner
+     content. */
   @Get('requests')
+  @UseGuards(SesionRequeridaGuard)
   @ApiOperation({
     summary: 'Listar requests de generación',
     description:
@@ -710,7 +717,12 @@ export class ItemsController {
    * GET /api/items/requests/failed
    * Lista requests con errores de parsing (para debugging admin)
    */
+  /* Signed in, and the strictest of the three: the payload carries
+     `rawModelOutput`, which is the model's unparsed text — questions,
+     their right answers and their explanations. It was reachable from
+     the open internet. */
   @Get('requests/failed')
+  @UseGuards(SesionRequeridaGuard)
   @ApiOperation({
     summary: 'Listar requests con errores (Admin)',
     description:
@@ -766,6 +778,7 @@ export class ItemsController {
    * Devuelve estado y métricas del request de generación
    */
   @Get('requests/:requestId/status')
+  @UseGuards(SesionRequeridaGuard)
   @ApiOperation({ summary: 'Get generation request status', description: 'Returns the current status and metrics for a generation request.' })
   @ApiParam({ name: 'requestId', description: 'Request ID returned in meta.requestId from /items/generate' })
   async getRequestStatus(@Param('requestId') requestId: string, @Req() request: any) {
@@ -838,6 +851,7 @@ export class ItemsController {
    * Si el request está completado devuelve los items generados
    */
   @Get('requests/:requestId')
+  @UseGuards(SesionRequeridaGuard)
   @ApiOperation({ summary: 'Get generation request details', description: 'If completed, returns generated items. Otherwise returns metadata and status.' })
   @ApiParam({ name: 'requestId' })
   async getRequest(@Param('requestId') requestId: string, @Req() request: any) {
@@ -890,6 +904,7 @@ export class ItemsController {
    * Cancela un request en curso (marca como cancelled)
    */
   @Delete('requests/:requestId/cancel')
+  @UseGuards(SesionRequeridaGuard)
   @ApiOperation({ summary: 'Cancel generation request', description: 'Cancel a pending or generating request.' })
   @ApiParam({ name: 'requestId' })
   async cancelRequest(@Param('requestId') requestId: string, @Req() request: any) {

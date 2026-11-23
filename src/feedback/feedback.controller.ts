@@ -1,7 +1,9 @@
-import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { FeedbackService } from './feedback.service';
 import { FeedbackGenerateSchema } from './dto/feedback-generate.schema';
+import { SesionRequeridaGuard } from '../common/guards/sesion-requerida.guard';
+import { CuotaGuard } from '../common/guards/cuota.guard';
 
 @Controller('feedback')
 @ApiTags('Feedback')
@@ -24,7 +26,12 @@ export class FeedbackController {
     return candidate && candidate.trim() ? candidate.trim() : null;
   }
 
+  /* Writing a plan is a model request, so it is metered like any
+     other. The twenty-minute cooldown only covers regenerating the
+     same session: a caller that starts new sessions was buying
+     unlimited model calls for free. */
   @Post('generate')
+  @UseGuards(SesionRequeridaGuard, CuotaGuard)
   @ApiOperation({ summary: 'Generate feedback for a session' })
   @ApiBody({
     schema: {
@@ -114,6 +121,7 @@ export class FeedbackController {
   }
 
   @Post(':sessionId/regenerate')
+  @UseGuards(SesionRequeridaGuard, CuotaGuard)
   @ApiOperation({ summary: 'Regenerate feedback' })
   @ApiResponse({ status: 200, description: 'Feedback regenerated.' })
   async regenerate(@Param('sessionId') sessionId: string, @Req() req: any) {

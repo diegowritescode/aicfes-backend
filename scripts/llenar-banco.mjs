@@ -30,6 +30,8 @@ const API = process.env.AICFES_API ?? 'https://aicfes-backend.deviego.xyz';
 const TOKEN = process.env.AICFES_TOKEN;
 const LOTE = Number(process.env.LOTE ?? 5);
 const DIFICULTADES = ['facil', 'media', 'alta'];
+/** Generation plus verification for a batch. Minutes, not seconds. */
+const MILISEGUNDOS_LIMITE = Number(process.env.LIMITE_MS ?? 600_000);
 
 /** The real exam, which is what a full sitting has to be able to draw. */
 const META = { LC: 41, MAT: 50, SOC: 50, CN: 58, ING: 55 };
@@ -67,12 +69,34 @@ async function inventario() {
   return Object.keys(porArea).length ? porArea : null;
 }
 
+/**
+ * One batch.
+ *
+ * Generating four items takes minutes, which is far past Node's
+ * default header timeout — the first run died on
+ * UND_ERR_HEADERS_TIMEOUT mid-round, losing the loop rather than the
+ * batch. A network failure here is expected, not exceptional: it is
+ * reported like any other batch failure so the round continues.
+ */
 async function generar(area, dificultad, n) {
-  const r = await fetch(`${API}/api/items/generate`, {
-    method: 'POST',
-    headers: cabeceras,
-    body: JSON.stringify({ area, dificultad, n }),
-  });
+  const abortador = new AbortController();
+  const limite = setTimeout(() => abortador.abort(), MILISEGUNDOS_LIMITE);
+
+  let r;
+  try {
+    r = await fetch(`${API}/api/items/generate`, {
+      method: 'POST',
+      headers: cabeceras,
+      body: JSON.stringify({ area, dificultad, n }),
+      signal: abortador.signal,
+    });
+  } catch (error) {
+    const agotado = error?.name === 'AbortError';
+    return { error: agotado ? 'tardó demasiado' : `red: ${error?.cause?.code ?? error?.message}` };
+  } finally {
+    clearTimeout(limite);
+  }
+
   const cuerpo = await r.json().catch(() => ({}));
   if (r.status === 429) {
     return { cuota: true, mensaje: cuerpo?.error?.message ?? 'cuota agotada' };

@@ -1,7 +1,9 @@
-import { Body, Controller, Get, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { TimeTrialService } from './time-trial.service';
 import { TimeTrialStartSchema } from './dto/time-trial-start.schema';
+import { SesionRequeridaGuard } from '../common/guards/sesion-requerida.guard';
+import { CuotaGuard } from '../common/guards/cuota.guard';
 
 @Controller('time-trial')
 @ApiTags('TimeTrial')
@@ -32,7 +34,11 @@ export class TimeTrialController {
     return { ok: true, data, meta: {} };
   }
 
+  /* Starting a trial generates items, which costs money: same meter
+     as every other model call. Without this, an account could spend
+     without limit by asking for trials instead of practice. */
   @Post('start')
+  @UseGuards(SesionRequeridaGuard, CuotaGuard)
   @ApiOperation({ summary: 'Start time trial' })
   @ApiBody({
     schema: {
