@@ -277,31 +277,93 @@ EAS sí sincroniza la capability (está en su lista de soportadas), pero
 sincronizarla no es tenerla aprobada. Screen Time API **no funciona en
 simulador**: exige dispositivo físico.
 
-### Android — pendiente de verificar
+### Android — VERIFICADO: posible, con tres correcciones al plan
 
-La investigación sigue en curso. Los mecanismos candidatos
-(`SYSTEM_ALERT_WINDOW`, `UsageStatsManager`, `AccessibilityService`) y
-sobre todo **la política de Google Play sobre usar
-`AccessibilityService` para bloquear apps** son el dato que falta.
+Investigado el 22 nov 2026 contra developer.android.com y las
+políticas de Google Play.
 
-### Implicación para Expo
+**Android no tiene ninguna API de bloqueo.** Se construye combinando
+tres cosas: detección (`UsageStatsManager` o `AccessibilityService`),
+overlay (`SYSTEM_ALERT_WINDOW`) y un foreground service.
 
-Nada de esto existe en JavaScript. Significa:
+Las 7 apps vivas que se verificaron en Play usan `AccessibilityService`:
+Forest, AppBlock, ScreenZen, Stay Focused, BlockSite, ActionDash,
+StayFree. Ninguna evidencia de sanción.
 
-- Módulos nativos propios (Kotlin para Android, Swift para iOS).
-- Un *config plugin* de Expo por plataforma.
-- En iOS, extensiones de app aparte del binario principal.
-- **Deja de funcionar en Expo Go.** Obliga a build de desarrollo.
+#### Tres correcciones a lo que asumíamos
 
-Eso no es un obstáculo, pero sí un cambio de ritmo: cada prueba pasa
-por una compilación de EAS, no por recargar el bundle.
+**1. Opal y Jomo no existen en Android.** Se probaron seis nombres de
+paquete: todos 404. Son solo iOS y usan la Screen Time API de Apple.
+El patrón de referencia en Android es Forest / AppBlock / ScreenZen,
+no ellos.
 
----
+**2. Los términos y condiciones NO bastan.** Esto contradice el plan
+original. La política de Play exige, textualmente, que la divulgación:
+
+> "Must be within the app itself, cannot only be in the app
+> description or on a website; Must be displayed in the normal usage
+> of the app... Cannot only be placed in a privacy policy or terms of
+> service; and Cannot be included with other disclosures pertaining to
+> personal or sensitive data collection."
+
+Es decir: **pantalla propia, en el flujo normal, con aceptación
+afirmativa.** Más un formulario aprobado en Play Console y un **vídeo
+demo** que muestre el flujo de consentimiento *y el de rechazo*.
+
+Fuente: [support.google.com/googleplay/android-developer/answer/10964491](https://support.google.com/googleplay/android-developer/answer/10964491)
+
+**3. El bloqueo nunca será irrompible, y la política prohíbe
+intentarlo.** El usuario puede desactivar la accesibilidad en Ajustes
+en cualquier momento. La política prohíbe "prevent the ability for
+users to disable or uninstall any app or service unless authorized by
+a parent or guardian".
+
+→ **Diseñar para fricción, no para imposibilidad.** Eso encaja con la
+idea: el peaje no encierra a nadie, pone el estudio en el camino.
+
+#### Lo que sí está permitido
+
+Bloquear apps **no** está prohibido. Lo prohibido es impedir que el
+usuario se salga, y la "autonomía" (decisiones que la app toma sola).
+Un bloqueador por reglas cae del lado permitido: Google aclara que
+"This does not prohibit deterministic, rule-based automation, where
+behavior follows a static, human-defined script".
+
+`SYSTEM_ALERT_WINDOW` y `PACKAGE_USAGE_STATS` no tienen restricción de
+publicación. Solo `AccessibilityService` exige la declaración.
+
+#### Límites y trampas
+
+| Qué | Detalle |
+|---|---|
+| `isAccessibilityTool` | Debe ser `false`. Una app de examen no califica como herramienta de accesibilidad |
+| Android 15+ | Para arrancar el foreground service hace falta **overlay ya visible**. Orden obligatorio |
+| Permisos | Overlay, usage access y accesibilidad se conceden en **tres pantallas del sistema**. Tres viajes a Ajustes en el onboarding |
+| Imposible | Matar otra app, modo kiosco (exige device owner y reset de fábrica), bloquear una web dentro del navegador sin accesibilidad |
+| EAS Update | No se puede entregar por OTA un cambio que altere el comportamiento declarado de la accesibilidad |
+
+#### Módulo para Expo
+
+`expo-screen-time` (el mismo que para iOS) cubre Android: declara
+`PACKAGE_USAGE_STATS`, `SYSTEM_ALERT_WINDOW`,
+`FOREGROUND_SERVICE_SPECIAL_USE`, una `ShieldActivity`, y hasta un
+`PipEvictorActivity` contra el escape por picture-in-picture. La
+accesibilidad es **opt-in** por flag.
+
+Riesgo: 40 estrellas, repo de hace días, 10 issues abiertos. Es joven.
+
+Casi todo lo demás que se buscó está muerto o no existe:
+`react-native-system-alert-window`, `react-native-android-usage-stats`,
+`react-native-device-policy-manager` no existen en npm.
+
+**Un punto sin resolver:** si el carve-out de control parental cubre el
+autobloqueo voluntario. No hay resolución pública. Decide si se puede
+usar un `DeviceAdminReceiver` anti-desinstalación.
 
 ## 4. Monetización
 
-**Estado: investigación en curso.** Los números concretos de comisión
-y de pasarelas colombianas van aquí cuando lleguen verificados.
+Investigado el 22 nov 2026. **Hay un dato que condiciona todo y que
+sigue SIN VERIFICAR de primera mano** — está marcado abajo.
 
 ### Lo que ya está construido
 
@@ -327,27 +389,106 @@ sitio donde escribirla, y un webhook de la pasarela que la escriba.
 **Verificado:** `grep -rn "'pago'" src/ --include='*.ts'` no encuentra
 ninguna asignación fuera del propio servicio de cuota.
 
-### La tensión que hay que resolver
+### El dato que condiciona todo (SIN VERIFICAR de primera mano)
 
-Diego quiere cobrar con pasarelas colombianas (Wompi, PayU, Mercado
-Pago) para aceptar PSE y Nequi, y para no pagar 15–30 % de comisión a
-las tiendas.
+La investigación reporta que las salidas legales para cobrar por fuera
+**son por mercado, y Colombia no está en ninguna**:
 
-Apple y Google restringen cobrar por fuera para contenido digital que
-se consume en la app. Las reglas cambiaron tras los litigios de
-2024-2025 y hay que confirmar el estado vigente y si aplica en
-Colombia.
+- **Apple:** la excepción que permite enlazar a pago externo aplicaría
+  solo al storefront de **Estados Unidos**. En el storefront
+  colombiano seguiría prohibido poner links, botones o precios que
+  lleven a pagar fuera de la app (guidelines 3.1.1(a) y 3.1.3).
+- **Google Play:** el programa de pago alternativo existiría solo en
+  Australia, Japón, Reino Unido y el EEE. **Colombia no.**
 
-Preguntas abiertas, por resolver con fuentes oficiales:
+El storefront lo decide el país de la cuenta del usuario, no dónde
+esté el desarrollador. Usuario colombiano = regla restrictiva.
 
-1. ¿Qué se permite enlazar o mencionar hoy dentro de la app?
-2. ¿Está disponible *User Choice Billing* de Google en Colombia, y con
-   qué comisión?
-3. ¿Califica una app educativa como *reader app* de Apple?
-4. ¿Cuánto queda de una suscripción de 20.000 COP por cada vía?
-5. IVA del 19 % en servicios digitales: quién lo retiene según la vía.
+> **Esta afirmación no se verificó contra las guidelines de Apple ni
+> contra la ayuda de Play Console directamente.** Es lo más caro de
+> todo el análisis: decide si se puede cobrar con Wompi o si toca la
+> tienda. **Confirmarlo antes de construir la pasarela.**
 
----
+### Las comisiones reales, si toca la tienda
+
+Mejores de lo que se temía: **15 %, no 30 %**, en ambas.
+
+- Apple: Small Business Program, 15 % si se facturó ≤ 1 millón USD el
+  año anterior.
+- Google Play: las suscripciones auto-renovables son 15 % sin importar
+  el volumen.
+
+### Las pasarelas colombianas, comparadas
+
+De una suscripción de **20.000 COP**, asumiendo no responsable de IVA:
+
+| Vía | Neto | % |
+|---|---|---|
+| Wompi | **18.536** | 92,7 % |
+| PayU / Rapyd | 18.860 | 94,3 % |
+| dLocal Go | 18.574 | 92,9 % |
+| Mercado Pago (14 días) | 18.384 | 91,9 % |
+| **Apple / Google al 15 %** | **17.000** | **85,0 %** |
+
+**Diferencia Wompi vs tienda: 1.536 COP por suscripción, 7,7 puntos.**
+Con 1.000 suscriptores al mes son ~18,4 millones COP al año.
+
+**Wompi es la recomendación**, por tres razones concretas:
+
+1. Tarifa 2,65 % + 700 COP, la más baja con recurrencia.
+2. **El único con recurrencia documentada en Nequi** (tokenizado),
+   Botón Bancolombia y Daviplata. Decisivo: mucho estudiante de 16-18
+   no tiene tarjeta de crédito.
+3. Registro como **persona natural sin Cámara de Comercio**.
+
+Trampas detectadas: DaviPay cobra 73.400 COP/mes aparte por
+suscripciones — con 50 suscriptores sale **peor que la tienda**. PSE
+probablemente no es auto-debitable, así que no sirve para cobro
+recurrente.
+
+### El patrón legal: app de solo login
+
+Es lo que hacen Netflix (desde 2018) y Spotify (desde 2016): la app
+iOS **solo tiene login**, sin precios ni enlaces de compra. Fuera de
+la app, la comunicación sí está permitida: "Developers can send
+communications outside of the app to their user base about purchasing
+methods other than in-app purchase."
+
+Para AICFES eso significa adquisición **web-first**: el estudiante
+llega por TikTok o Google, paga en la web con Wompi, descarga la app y
+entra con su cuenta.
+
+**Riesgo honesto:** Netflix y Spotify sobreviven con app de solo login
+porque son marcas enormes. Una app nueva y pequeña tiene riesgo real
+de rechazo pidiendo IAP. Mitigación: ofrecer también la compra en la
+tienda a un precio más alto (26.900 en tienda vs 20.000 en web) y
+absorber el 15 % de quien compre ahí.
+
+### Impuestos: la variable de mayor impacto
+
+Probablemente el servicio **esté gravado** con IVA al 19 %: la
+exclusión del Art. 476 cubre establecimientos educativos reconocidos
+por el Gobierno, y una app privada no lo es.
+
+Pero probablemente Diego sea **no responsable de IVA**, por el umbral
+de 3.500 UVT (≈183 millones COP al año en 2026).
+
+Eso importa mucho: si resulta responsable y no puede subir el precio,
+el neto por Wompi cae a **15.343 COP (76,7 %)** y la ventaja sobre la
+tienda casi desaparece.
+
+**Dos preguntas para un contador**, no para mí:
+1. ¿Está gravado el servicio, y aplica el umbral de 3.500 UVT?
+2. ¿Qué CIIU corresponde para el régimen SIMPLE? Educación cae en el
+   grupo del 5,9 %–14,5 %, el más caro. La diferencia con el grupo de
+   comercio es ~4 puntos del ingreso bruto.
+
+### RevenueCat: no, por ahora
+
+Gratis hasta 2.500 USD de ingreso mensual, luego 1 %. Existe para
+orquestar las compras de Apple y Google. Si se cobra por Wompi no
+aporta nada y cuesta 1 % extra. Solo tendría sentido sosteniendo
+tienda y web en paralelo.
 
 ## 5. Lo que falta, medido
 
@@ -479,22 +620,112 @@ barata con más efecto en cómo se siente el producto.
 
 ---
 
-## 7. Qué hacer primero
+## 7. El plan: de aquí al 1.0
 
-El orden lo decide una sola pregunta: *¿qué pasa si esto no funciona?*
+Seis bloques. El orden lo decide una pregunta: *¿qué pasa si esto no
+funciona?* Lo que puede invalidar meses de trabajo va primero, aunque
+sea aburrido.
 
-1. **Pedir el entitlement de Apple.** Es trámite, no código, y puede
-   tardar semanas. Si se niega, todo el plan de iOS cambia. Hacerlo
-   antes que nada.
-2. **Verificar la política de Google Play.** Misma lógica, sin trámite.
-3. **Cimientos:** `auth/refresh`, campo `plan`, desplegar la pregunta
-   del día. Son días, no semanas, y sin ellos nada más importa.
-4. **Prototipo del peaje en Android.** Es la plataforma permisiva: si
-   la mecánica no engancha ahí, no vale construirla en iOS.
-5. **Decidir la vía de pago** con los números a la vista.
-6. **El resto:** ranking, insignias, figuras, más modos.
+### Bloque 0 — Esta semana: trámites y la fuga
 
----
+Nada de esto es código interesante, y todo bloquea algo grande.
+
+| Qué | Por qué ahora |
+|---|---|
+| **Desplegar la corrección de seguridad** | `/api/items/requests/failed` está abierto en producción y filtra respuestas correctas. Verificado el 22 nov |
+| **Pedir el entitlement de Apple** | Trámite humano sin plazo publicado. Son 4 solicitudes (app + 3 extensiones) y las pide el titular de la cuenta. Si lo niegan, el plan de iOS cambia entero |
+| **Verificar la regla de pagos** | Leer las guidelines 3.1.1(a) y 3.1.3 y la ayuda de Play. Decide Wompi vs tienda. Una tarde |
+| **Hablar con un contador** | IVA y CIIU. Dos preguntas, y mueven ~4 puntos del ingreso |
+
+### Bloque 1 — Cimientos (1 semana)
+
+Sin esto nada más importa, y es todo pequeño.
+
+- `POST /api/auth/refresh` en el móvil. Hoy la sesión expira y el
+  estudiante cae al login sin saber por qué.
+- Columna `plan` en `User`, con su migración. Es la primera pieza para
+  poder cobrar: hoy `plan` existe como tipo pero nadie lo asigna.
+- Desplegar la pregunta del día (ya está escrita).
+- Los 7 hooks que no exponen su error.
+
+### Bloque 2 — Offline (1-2 semanas)
+
+**Dejó de ser opcional.** La pantalla de bloqueo de Apple corre en un
+sandbox sin red: las preguntas del peaje tienen que estar ya en el
+teléfono. Y hoy la app sin internet está vacía.
+
+- Persistir la caché de react-query (AsyncStorage o SQLite).
+- Descargar un lote de preguntas por adelantado, elegidas por los
+  temas débiles del estudiante.
+- Cola de respuestas pendientes que se sincroniza al volver la red.
+- Bajar el APK de 94 MB.
+
+Esto sirve dos veces: hace la app usable con datos prepago **y** es
+requisito del peaje.
+
+### Bloque 3 — Notificaciones (3-5 días)
+
+Hay rachas con hitos de 3, 7, 14, 21, 30, 60 y 90 días, y ninguna
+forma de avisar. Una racha sin notificación se rompe en silencio.
+
+- `expo-notifications`, con recordatorio a una hora que el estudiante
+  elija.
+- Avisar cuando la racha está por romperse, no después.
+- `expo-updates`, para corregir sin pasar por la tienda.
+
+### Bloque 4 — El peaje (3-4 semanas, Android primero)
+
+Android primero porque es la plataforma permisiva: si la mecánica no
+engancha ahí, no vale construirla en iOS.
+
+1. Pantalla de divulgación propia, con aceptación explícita. **No en
+   los términos y condiciones** — Play lo prohíbe expresamente.
+2. Onboarding de los tres permisos, con sus tres viajes a Ajustes.
+3. Detección de app en primer plano y overlay con el peaje.
+4. Los 5 ejercicios de temas débiles, servidos desde el lote local.
+5. Desbloqueo de 15 minutos y re-bloqueo al terminar.
+6. Formulario de Play Console y vídeo demo.
+
+Luego iOS, con el entitlement ya en mano: el shield abre la app
+(`openParentalControlsApp`) y los ejercicios ocurren adentro.
+
+### Bloque 5 — Cobrar (1-2 semanas)
+
+Depende de lo que diga el bloque 0.
+
+- Wompi con recurrencia (Nequi y tarjeta), si la regla lo permite.
+- Webhook que escriba la columna `plan`.
+- Landing de pago, fuera de la app.
+- Pantalla de planes dentro de la app **sin precios ni enlaces**, si
+  toca la vía restrictiva.
+
+Cuidado con App Review 4.10: se cobra por la preparación del ICFES,
+nunca por "desbloquear apps".
+
+### Lo que queda para después del 1.0
+
+Ranking entre estudiantes, insignias persistidas, figuras en las
+preguntas (`figuras/item/:id.svg` existe y nadie lo llama), los 3
+modos de contrarreloj retirados, `simulacro/blueprint`.
+
+### Y la deuda de escalabilidad
+
+Una auditoría del 22 nov encontró cosas que no rompen hoy con pocos
+usuarios pero sí con mil. Las que valen la pena antes de cobrar:
+
+| Problema | Dónde |
+|---|---|
+| `scryptSync` bloquea el event loop en cada login | `auth.service.ts:15` |
+| Login sin límite de intentos | `auth.controller.ts:141` |
+| Rate limiter en memoria, no sobrevive a dos réplicas | `items.controller.ts:31` |
+| `getAchievements` carga **todas** las sesiones del usuario | `dashboard.service.ts:1099` |
+| La generación corre dentro de la petición HTTP, sin cola | `items.controller.ts:160` |
+| `/health` no toca la base de datos | `health.controller.ts:27` |
+| Sin endpoint para borrar la cuenta | relevante con menores de edad |
+
+Esa auditoría no se verificó entera: de sus tres acusaciones más
+graves, **una era real y dos eran falsas**. Comprobar antes de
+arreglar.
 
 ## Cómo mantener este documento
 
