@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../persistence/prisma.service';
 import { ItemGeneratorService } from '../items/services/item-generator.service';
 import { PersistenceService } from '../persistence/persistence.service';
@@ -7,15 +7,20 @@ import { DashboardService } from '../dashboard/dashboard.service';
 import { Area, Dificultad } from '@prisma/client';
 import { MODOS, MODOS_RETIRADOS } from './modos';
 import { DebilidadesService } from '../calidad/debilidades.service';
+import { ItemBankService } from '../items/services/item-bank.service';
+import { repartirFuentes } from './fuente-de-preguntas';
 
 @Injectable()
 export class TimeTrialService {
+  private readonly log = new Logger(TimeTrialService.name);
+
   constructor(
     private prisma: PrismaService,
     private generator: ItemGeneratorService,
     private persistence: PersistenceService,
     private dashboardService: DashboardService,
     private debilidades: DebilidadesService,
+    private banco: ItemBankService,
   ) {}
 
   async listModes() {
@@ -56,6 +61,90 @@ export class TimeTrialService {
       where: { id: { in: MODOS_RETIRADOS } },
       data: { enabled: false },
     });
+  }
+
+  /**
+   * Questions for one section: from the bank first, generated for the
+   * rest.
+   *
+   * Contrarreloj used to generate every question of every round. The
+   * bank holds 326 verified items that only a simulacro and the
+   * offline pool ever drew from, so a round of eight was eight model
+   * requests for questions that already existed — and the mixed mode
+   * made five such calls in sequence, which is why it felt slow.
+   *
+   * The bank is right for this mode in particular. A round is short
+   * and the point is pace, not novelty, so meeting an item twice
+   * costs a learner little; `draw` orders by `lastServedAt` so the
+   * least recently seen come first. Entrenar still generates, where
+   * novelty is the point.
+   *
+   * Generation is the fallback rather than the path, so a thin area
+   * still fills a round instead of refusing it.
+   */
+  private async preguntasParaSeccion(section: {
+    area: string;
+    dificultad: string;
+    n: number;
+    tema?: string;
+    plantilla?: string;
+    userId?: string | null;
+    excluir?: readonly string[];
+  }) {
+    let delBanco: Array<Record<string, unknown>> = [];
+    try {
+      delBanco = await this.banco.draw({
+        area: section.area,
+        dificultad: section.dificultad,
+        limit: section.n,
+        excludeIds: [...(section.excluir ?? [])],
+      });
+    } catch (e) {
+      /* A bank failure must not stop someone from practising: the
+         generator still answers. */
+      this.log.warn(`Banco no disponible para ${section.area}: ${String(e)}`);
+    }
+
+    const reparto = repartirFuentes(section.n, delBanco.length);
+    const usados = delBanco.slice(0, reparto.delBanco).map((i) => this.aItem(i));
+
+    if (reparto.porGenerar === 0) {
+      return { items: usados, requestId: null as string | null };
+    }
+
+    const generados = await this.generateForSection({
+      ...section,
+      n: reparto.porGenerar,
+    });
+    return {
+      items: [...usados, ...generados.items],
+      requestId: generados.requestId,
+      error: generados.error,
+    };
+  }
+
+  /**
+   * A bank row in the shape the client reads.
+   *
+   * The same fields the offline pool sends (`lote-offline.service.ts`),
+   * and the mobile schema already accepts them: `plantilla` is
+   * optional there precisely so the two sources can mix.
+   */
+  private aItem(item: Record<string, unknown>) {
+    return {
+      id: String(item.id),
+      area: item.area,
+      dificultad: String(item.dificultad),
+      contexto: (item.contexto as string | null) ?? null,
+      pregunta: String(item.pregunta),
+      opciones: item.opciones,
+      respuesta_correcta: String(item.respuesta_correcta),
+      justificacion: (item.justificacion as string | undefined) ?? undefined,
+      explicaciones: (item.explicaciones as Record<string, string> | null) ?? null,
+      distractores: (item.distractores as Record<string, string> | null) ?? null,
+      figura: item.figura ?? null,
+      tags: (item.tags as string[] | undefined) ?? undefined,
+    };
   }
 
   private async generateForSection(section: {
@@ -158,10 +247,19 @@ export class TimeTrialService {
     const items: any[] = [];
 
     if (mix && mix.length > 0) {
+      /* Carried across sections: the areas differ, but a bank draw is
+         by area and difficulty, and without this two sections could
+         serve the same row twice in one round. */
+      const yaServidos: string[] = [];
       for (const section of mix) {
-        const result = await this.generateForSection({ ...section, userId: params.userId });
+        const result = await this.preguntasParaSeccion({
+          ...section,
+          userId: params.userId,
+          excluir: yaServidos,
+        });
         if (result.items.length > 0) {
           items.push(...result.items);
+          for (const item of result.items) yaServidos.push(String(item.id));
         }
       }
     } else {
@@ -175,7 +273,7 @@ export class TimeTrialService {
       const objetivo =
         area ?? (await this.areaDebil(params.userId)) ?? 'MAT';
       const nivel = dificultad ?? 'media';
-      const result = await this.generateForSection({
+      const result = await this.preguntasParaSeccion({
         area: objetivo,
         dificultad: nivel,
         n: questions,
