@@ -97,6 +97,21 @@ efecto es el mismo que no pasarla.
 
 ---
 
+**Dos 404 distintos, y conviene saber cuál es cuál.** Después de
+recrear el contenedor hay unos segundos en que Traefik todavía no lo
+conoce y responde él mismo:
+
+    404 page not found
+
+Eso es texto plano y viene del proxy: espere unos segundos y
+reintente. Si en cambio la respuesta es JSON y dice
+
+    {"error":{"message":"Cannot POST /api/...","statusCode":404}}
+
+entonces la API sí respondió, y esa ruta no existe en el código que
+está desplegado — lo que suele significar que falta cambiar
+`AICFES_API_TAG`.
+
 **Una variable en `.env` no llega al contenedor por sí sola.** Compose
 solo pasa las que `compose.yml` declara en `environment:`. Un secreto
 que está en `.env` y no en esa lista no llega a ninguna parte, y la
