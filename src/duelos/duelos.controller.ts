@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Post, Query, Req, UseGuards } fro
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SesionRequeridaGuard } from '../common/guards/sesion-requerida.guard';
 import { DuelosService } from './duelos.service';
+import { AmigosService } from './amigos.service';
 import {
   buscableSchema,
   buscarSchema,
@@ -27,7 +28,10 @@ import {
 @Controller('duelos')
 @UseGuards(SesionRequeridaGuard)
 export class DuelosController {
-  constructor(private readonly duelos: DuelosService) {}
+  constructor(
+    private readonly duelos: DuelosService,
+    private readonly amigos: AmigosService,
+  ) {}
 
   /** The token is the only trustworthy source of identity. */
   private userId(req: any): string {
@@ -136,6 +140,42 @@ export class DuelosController {
       })),
       segundos: parsed.data.segundos,
     });
+  }
+
+  /**
+   * The people this learner duels often.
+   *
+   * Above the blocked list on purpose: both are lists of people, and
+   * the friendly one is the one opened daily.
+   */
+  @Get('amigos')
+  @ApiOperation({ summary: 'Mis amigos y las solicitudes pendientes' })
+  async amigosMios(@Req() req: any) {
+    return this.amigos.mios(this.userId(req));
+  }
+
+  @Post('amigos/:id')
+  @ApiOperation({ summary: 'Pedirle a alguien ser amigos' })
+  async pedirAmistad(@Req() req: any, @Param('id') id: string) {
+    return this.amigos.pedir(this.userId(req), id);
+  }
+
+  @Post('amigos/solicitud/:id/aceptar')
+  @ApiOperation({ summary: 'Aceptar una solicitud' })
+  async aceptarAmistad(@Req() req: any, @Param('id') id: string) {
+    return this.amigos.responder(this.userId(req), id, true);
+  }
+
+  @Post('amigos/solicitud/:id/rechazar')
+  @ApiOperation({ summary: 'Rechazar una solicitud' })
+  async rechazarAmistad(@Req() req: any, @Param('id') id: string) {
+    return this.amigos.responder(this.userId(req), id, false);
+  }
+
+  @Delete('amigos/:id')
+  @ApiOperation({ summary: 'Quitar a alguien de mis amigos' })
+  async quitarAmigo(@Req() req: any, @Param('id') id: string) {
+    return this.amigos.quitar(this.userId(req), id);
   }
 
   @Get('bloqueados')

@@ -123,6 +123,8 @@ model User {
   tutorAutorizoEn DateTime?
   duelosRetador   Duelo[]          @relation("retador")
   duelosRival     Duelo[]          @relation("rival")
+  amistadesPedidas Amistad[]       @relation("pidio")
+  amistadesRecibidas Amistad[]     @relation("recibio")
   bloqueosHechos  Bloqueo[]        @relation("bloqueador")
   bloqueosRecibidos Bloqueo[]      @relation("bloqueado")
   denunciasHechas Denuncia[]       @relation("denunciante")
@@ -657,4 +659,42 @@ model Denuncia {
   /// first, and everything reported about one account.
   @@index([estado, creadoEn])
   @@index([denunciadoId])
+}
+
+enum EstadoDeAmistad {
+  /// Asked, and the other learner has not answered yet.
+  pendiente
+  aceptada
+  /// Declined. Kept rather than deleted so the same person cannot
+  /// re-ask every day: a refused request that vanishes is a way to
+  /// pester someone through an ordinary feature.
+  rechazada
+}
+
+/// Two learners who duel each other often enough to not want the search box.
+///
+/// **Mutual by construction.** A one-sided friend list would let a
+/// stranger add a minor and challenge them without that minor ever
+/// agreeing to anything — which is the surface alias search already
+/// has to justify, and there is no reason to add a second one.
+///
+/// The pair is stored in the order it was asked, and every read looks
+/// at both directions. Normalising the pair (smaller id first) would
+/// make the queries simpler and lose who asked whom, which is exactly
+/// what the pending state needs to know.
+model Amistad {
+  id         String          @id @default(cuid())
+  pidio      User            @relation("pidio", fields: [pidioId], references: [id], onDelete: Cascade)
+  pidioId    String
+  recibio    User            @relation("recibio", fields: [recibioId], references: [id], onDelete: Cascade)
+  recibioId  String
+  estado     EstadoDeAmistad @default(pendiente)
+  creadoEn   DateTime        @default(now())
+  resueltaEn DateTime?
+
+  /// One row per ordered pair: asking twice is asking once.
+  @@unique([pidioId, recibioId])
+  /// The two lists a learner opens: who they asked, and who asked them.
+  @@index([pidioId, estado])
+  @@index([recibioId, estado])
 }
