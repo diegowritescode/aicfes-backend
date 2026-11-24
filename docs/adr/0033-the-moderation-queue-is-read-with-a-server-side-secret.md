@@ -78,12 +78,24 @@ documented queue of minors' reports invites the attempt.
 The promise in `ModalDenuncia` is now true. Someone can read the queue
 and act on it.
 
-**It still requires a person to look.** `GET /moderacion/pendientes`
-returns `abiertas` and `diasDeLaMasAntigua` precisely so the question
-"is anyone attending this?" can be answered in one request — but
-nothing yet asks it on a schedule, and nobody is notified. That is the
-next obligation, smaller than this one and real: a queue that is
-readable and unread is only one step better than unreadable.
+**It still requires a person to look, but less of one.**
+*Amended 23 November 2026.* `GET /moderacion/pendientes` returns
+`abiertas` and `diasDeLaMasAntigua` so the question "is anyone
+attending this?" costs one request. The mobile app now asks it on
+every launch and shows a notice on the home screen when anything is
+waiting, with the numbers rather than an adjective — "3 denuncias sin
+revisar, la más vieja de hace 2 días". The queue is also readable and
+actionable from the phone, so attending it no longer means sitting at
+a terminal.
+
+**What that does not fix:** there is still no push. Reminders in this
+app are local notifications scheduled on the device, so nothing can
+reach a moderator while the app is closed. A report that arrives while
+the app is shut waits until the next launch. Closing that gap needs a
+push service and a device token, which is a larger decision than this
+ADR, and the thresholds in `features/moderacion/model/urgencia.ts`
+(late at one day, unattended at three) exist so that the delay is at
+least visible when someone does open it.
 
 There is no moderation interface, only HTTP routes. Adequate for one
 moderator with a terminal; it is not adequate for a second person who

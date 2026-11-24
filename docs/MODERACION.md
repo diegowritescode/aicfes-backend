@@ -140,10 +140,19 @@ curl -s -X POST -H "x-moderacion-token: $TOKEN" \
 
 ## Lo que esta cola no hace todavía
 
-**Nadie le avisa.** Hay que acordarse de mirar. `pendientes` existe
-para que preguntarlo cueste una petición, pero nada lo pregunta solo.
-Mientras los duelos sean de prueba eso alcanza; cuando lleguen
-estudiantes reales, no.
+**Nadie le avisa con la app cerrada.** Desde el 23 nov 2026 la app
+pregunta `pendientes` cada vez que se abre y muestra un aviso en
+Inicio si hay algo esperando, con los números: "3 denuncias sin
+revisar, la más vieja de hace 2 días". También se puede leer y
+atender la cola desde el teléfono — pegando el token una vez, que
+queda cifrado en el llavero del sistema.
+
+Lo que eso **no** arregla: no hay notificaciones push. Los
+recordatorios de esta app son locales, programados en el dispositivo,
+así que nada puede alcanzarlo mientras la app está cerrada. Una
+denuncia que entra con la app apagada espera hasta que la abra. Si
+pasa de un día, el aviso lo dice en rojo; a los tres, dice que la cola
+no se está atendiendo.
 
 **El secreto es compartido**, así que no registra *quién* actuó. Con un
 solo moderador esa distinción no existe. Con dos, es lo primero que
