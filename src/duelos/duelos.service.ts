@@ -2,6 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import type { Area } from '@prisma/client';
 import { PrismaService } from '../persistence/prisma.service';
 import { ItemBankService } from '../items/services/item-bank.service';
+import { CorreoService } from '../common/correo.service';
+import { ConfigService } from '@nestjs/config';
+import { asunto, cuerpo } from './model/correo-denuncia';
 import { DebilidadesService } from '../calidad/debilidades.service';
 import { esVisibleEnBusqueda, validarAlias } from './model/alias';
 import {
@@ -60,6 +63,8 @@ export class DuelosService {
     private readonly prisma: PrismaService,
     private readonly banco: ItemBankService,
     private readonly debilidades: DebilidadesService,
+    private readonly correo: CorreoService,
+    private readonly config: ConfigService,
   ) {}
 
   /**
@@ -248,10 +253,76 @@ export class DuelosService {
        to stop now, not after a review. */
     await this.bloquear(params.userId, params.denunciadoId);
 
+    /* Not awaited, and failures are swallowed inside. A learner's
+       report must not depend on a mail provider being reachable:
+       the row is saved and the queue is readable either way. */
+    void this.avisarPorCorreo(params);
+
     return {
       ok: true as const,
       data: { recibida: true, bloqueado: true },
     };
+  }
+
+  /**
+   * Tells whoever moderates that a report arrived.
+   *
+   * Email rather than push. The queue was readable only from inside
+   * the app, so a report sent at noon waited until someone happened
+   * to open it — and push would not fix that either: it needs the app
+   * installed, the device reachable and the notification not
+   * dismissed. An email waits in an inbox.
+   *
+   * Silent when `MODERACION_CORREO` is unset, like the moderation
+   * queue is closed without its token: a feature that needs an
+   * address and has none should do nothing, not guess.
+   */
+  private async avisarPorCorreo(params: {
+    userId: string;
+    denunciadoId: string;
+    motivo: 'alias_ofensivo' | 'acoso' | 'suplantacion' | 'otro';
+  }): Promise<void> {
+    const destino = this.config.get<string>('MODERACION_CORREO')?.trim();
+    if (!destino) return;
+
+    try {
+      const [denunciado, denunciante, totales, abiertas, distintos] = await Promise.all([
+        this.prisma.user.findUnique({
+          where: { id: params.denunciadoId },
+          select: { alias: true },
+        }),
+        this.prisma.user.findUnique({
+          where: { id: params.userId },
+          select: { alias: true },
+        }),
+        this.prisma.denuncia.count({ where: { denunciadoId: params.denunciadoId } }),
+        this.prisma.denuncia.count({ where: { estado: 'abierta' } }),
+        this.prisma.denuncia.findMany({
+          where: { denunciadoId: params.denunciadoId },
+          select: { denuncianteId: true },
+          distinct: ['denuncianteId'],
+        }),
+      ]);
+
+      const datos = {
+        motivo: params.motivo,
+        aliasDenunciado: denunciado?.alias ?? null,
+        aliasDenunciante: denunciante?.alias ?? null,
+        totales,
+        personas: distintos.length,
+        abiertas,
+      };
+
+      await this.correo.enviar({
+        para: destino,
+        asunto: asunto(datos),
+        texto: cuerpo(datos),
+      });
+    } catch (e) {
+      /* Reaching here means the notification failed, not the report.
+         The row is already saved and the block already applied. */
+      this.log.error(`No se pudo avisar de la denuncia: ${String(e)}`);
+    }
   }
 
   /** Challenges another learner. */

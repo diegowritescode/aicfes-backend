@@ -20,6 +20,12 @@ const envSchema = z.object({
      rather than open. Set on the server over SSH like the other
      secrets. */
   MODERACION_TOKEN: z.string().optional(),
+  /* Email, for telling a moderator that a report arrived. Both
+     optional: without them nothing is sent and the queue is still
+     readable in the app. */
+  RESEND_API_KEY: z.string().optional(),
+  MODERACION_CORREO: z.string().optional(),
+  CORREO_REMITENTE: z.string().optional(),
 });
 
 export function validateEnv(config: Record<string, any>) {

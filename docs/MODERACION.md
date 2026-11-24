@@ -140,7 +140,28 @@ curl -s -X POST -H "x-moderacion-token: $TOKEN" \
 
 ## Lo que esta cola no hace todavía
 
-**Nadie le avisa con la app cerrada.** Desde el 23 nov 2026 la app
+**Ahora le llega un correo.** Desde el 24 nov 2026, cada denuncia
+dispara un correo por Resend, si están puestas estas dos variables en
+el servidor:
+
+```bash
+RESEND_API_KEY=...          # la misma clave que usa Zyrcle sirve
+MODERACION_CORREO=usted@sucorreo.com
+CORREO_REMITENTE=...        # opcional; por omisión no-reply@aicfes.deviego.xyz
+```
+
+Sin ellas no se envía nada y queda anotado en el log — la denuncia se
+guarda igual y la cola se sigue leyendo en la app. Una denuncia nunca
+falla porque el correo esté mal configurado.
+
+**El asunto lleva el patrón adelante**, porque es la única línea que
+siempre se lee: "3 personas denunciaron a fulano" en vez de "nueva
+denuncia". **El cuerpo no lleva lo que escribió quien denunció**: una
+denuncia por acoso puede citar el acoso, y reenviar el relato de un
+menor a una bandeja, por un tercero, agrega exposición sin agregar
+una decisión. El detalle vive en la app, detrás del token.
+
+**Sigue sin haber aviso dentro de la app con ella cerrada.** La app
 pregunta `pendientes` cada vez que se abre y muestra un aviso en
 Inicio si hay algo esperando, con los números: "3 denuncias sin
 revisar, la más vieja de hace 2 días". También se puede leer y

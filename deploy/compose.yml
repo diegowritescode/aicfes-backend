@@ -64,6 +64,12 @@ services:
       # in this list reaches nothing, which is exactly how this was
       # first deployed.
       MODERACION_TOKEN: ${MODERACION_TOKEN:-}
+      # Tells whoever moderates that a report arrived. Both optional:
+      # without them nothing is sent, the report is still saved and the
+      # queue is still readable in the app.
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MODERACION_CORREO: ${MODERACION_CORREO:-}
+      CORREO_REMITENTE: ${CORREO_REMITENTE:-}
     healthcheck:
       test:
         - CMD-SHELL

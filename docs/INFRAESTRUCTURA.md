@@ -152,6 +152,9 @@ despliegue falle en vez de arrancar mal.
 | `COSTO_ESTIMADO_PREGUNTA_USD` | `0.009` | medido, no supuesto |
 | `USUARIOS_SEMILLA` | vacío | ids separados por coma |
 | `MODERACION_TOKEN` | vacío | abre la cola de denuncias; vacío la cierra |
+| `RESEND_API_KEY` | vacío | correo de aviso de denuncias; vacío = solo log |
+| `MODERACION_CORREO` | vacío | a quién le llegan las denuncias |
+| `CORREO_REMITENTE` | `no-reply@aicfes.deviego.xyz` | remitente del correo |
 | `MAX_ITEMS` | `25` | tope de ítems por petición |
 | `BODY_LIMIT` | `1mb` | tamaño máximo de petición |
 | `CORS_ORIGIN` | `*` | lista separada por comas |
