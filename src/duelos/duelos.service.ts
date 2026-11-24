@@ -99,13 +99,23 @@ export class DuelosService {
   async miPerfil(userId: string) {
     const usuario = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { alias: true, aliasBuscable: true, tutorAutorizoEn: true },
+      /* `esModerador` rides along here rather than getting its own
+         route: the app already reads this profile on launch, and a
+         second request for one boolean is a second thing that can
+         fail on a phone with one bar. */
+      select: {
+        alias: true,
+        aliasBuscable: true,
+        tutorAutorizoEn: true,
+        esModerador: true,
+      },
     });
     if (!usuario) return fallo('NO_ENCONTRADO', 'Cuenta no encontrada.');
 
+    const { esModerador, ...alias } = usuario;
     return {
       ok: true as const,
-      data: { ...usuario, visible: esVisibleEnBusqueda(usuario) },
+      data: { ...alias, esModerador, visible: esVisibleEnBusqueda(alias) },
     };
   }
 

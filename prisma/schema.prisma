@@ -116,6 +116,20 @@ model User {
   /// separate decisions, and the one that exposes a minor to strangers
   /// is the one that should be revocable without losing the other.
   aliasBuscable   Boolean          @default(true)
+  /// Whether this account may read and act on the report queue.
+  ///
+  /// Granted once through `POST /moderacion/otorgar`, which is guarded
+  /// by the server-side secret: the authority does not come from a row
+  /// anyone with database access could write for themselves, and after
+  /// that the moderator signs in like everyone else (ADR 34).
+  ///
+  /// Default false, and the one query that reads it is indexed, so a
+  /// learner's own sign-in never pays for a feature they do not have.
+  esModerador     Boolean          @default(false)
+  /// When the role was granted. Kept because "who has this, and since
+  /// when" is the first question asked when something goes wrong, and
+  /// a boolean alone cannot answer it.
+  moderadorDesde  DateTime?
   /// Confirmation that a parent or guardian authorised this account,
   /// required by Colombia's Ley 1581 de 2012 for a minor's personal
   /// data. Null means not given, which is why alias search is gated on
@@ -135,6 +149,9 @@ model User {
   /// have run out. Declared here rather than only in SQL — an index
   /// Prisma cannot see is an index Prisma will drop.
   @@index([plan, planHasta])
+  /// Who moderates. A handful of rows out of all accounts, so the
+  /// index is what keeps "list the moderators" from reading the table.
+  @@index([esModerador])
   simulacros    Simulacro[]
 
 }

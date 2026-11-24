@@ -1,11 +1,15 @@
 import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiExcludeController, ApiOperation } from '@nestjs/swagger';
 import { z } from 'zod';
-import { ModeracionGuard } from '../common/guards/moderacion.guard';
+import { ModeracionGuard, SoloSecretoGuard } from '../common/guards/moderacion.guard';
 import { ModeracionService } from './moderacion.service';
 
 const resolverSchema = z.object({
   estado: z.enum(['revisada', 'descartada']),
+});
+
+const otorgarSchema = z.object({
+  email: z.string().email().max(200),
 });
 
 /**
@@ -24,6 +28,49 @@ const resolverSchema = z.object({
 @UseGuards(ModeracionGuard)
 export class ModeracionController {
   constructor(private readonly moderacion: ModeracionService) {}
+
+  /**
+   * Grants the moderator role.
+   *
+   * `SoloSecretoGuard`, not the ordinary one: this is the single
+   * route a moderator must not be able to call. Otherwise the first
+   * moderator can appoint the second, and one compromised account
+   * becomes all of them.
+   */
+  @Post('otorgar')
+  @UseGuards(SoloSecretoGuard)
+  @ApiOperation({ summary: 'Dar el rol de moderador a una cuenta' })
+  async otorgar(@Body() body: unknown) {
+    const parsed = otorgarSchema.safeParse(body);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Falta el correo.' },
+      };
+    }
+    return this.moderacion.otorgarRol(parsed.data.email);
+  }
+
+  @Post('quitar')
+  @UseGuards(SoloSecretoGuard)
+  @ApiOperation({ summary: 'Quitar el rol de moderador' })
+  async quitar(@Body() body: unknown) {
+    const parsed = otorgarSchema.safeParse(body);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Falta el correo.' },
+      };
+    }
+    return this.moderacion.quitarRol(parsed.data.email);
+  }
+
+  @Get('moderadores')
+  @UseGuards(SoloSecretoGuard)
+  @ApiOperation({ summary: 'Quiénes moderan, y desde cuándo' })
+  async moderadores() {
+    return this.moderacion.moderadores();
+  }
 
   /** How many reports are waiting, and how long the oldest has waited. */
   @Get('pendientes')

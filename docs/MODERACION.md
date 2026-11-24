@@ -9,6 +9,40 @@ Esa persona es usted. Si nadie lee esto, la promesa es falsa — y un
 botón de denuncia que nadie atiende es peor que no tenerlo (ADR 32,
 ADR 33).
 
+## Cómo se entra, en una línea
+
+**Con su cuenta de siempre**, si tiene el rol de moderador. Nada que
+pegar, nada que guardar en el teléfono.
+
+El rol se otorga **una sola vez**, con el secreto del servidor (ADR
+34). Después de eso, abre la app y Denuncias está ahí.
+
+```bash
+curl -X POST https://aicfes-backend.deviego.xyz/api/moderacion/otorgar \
+  -H "x-moderacion-token: $TOKEN" \
+  -H 'content-type: application/json' \
+  -d '{"email":"usted@sucorreo.com"}'
+```
+
+Para ver quién modera, o quitarle el rol a alguien:
+
+```bash
+curl -H "x-moderacion-token: $TOKEN" \
+  https://aicfes-backend.deviego.xyz/api/moderacion/moderadores
+
+curl -X POST -H "x-moderacion-token: $TOKEN" \
+  -H 'content-type: application/json' -d '{"email":"...@..."}' \
+  https://aicfes-backend.deviego.xyz/api/moderacion/quitar
+```
+
+**Un moderador no puede nombrar a otro.** Esa ruta exige el secreto y
+**rechaza el rol**, a propósito: si un moderador pudiera nombrar
+moderadores, una cuenta comprometida se volvería todas.
+
+El secreto sigue abriendo la cola por su cuenta, como respaldo —
+perder el acceso a la cuenta no debe dejar a la única persona que
+modera fuera de una cola donde hay menores reportando.
+
 ## Primero: poner el secreto
 
 Las rutas están **cerradas** hasta que exista `MODERACION_TOKEN`. No es

@@ -75,6 +75,78 @@ export class ModeracionService {
     };
   }
 
+  /**
+   * Grants the role to an account.
+   *
+   * Guarded by the server-side secret, never by the role itself: a
+   * moderator who could appoint other moderators turns one
+   * compromised account into every account (ADR 34).
+   *
+   * By email, because that is what the person running the command
+   * knows. An id would mean looking it up in the database first,
+   * which is the step this endpoint exists to avoid.
+   */
+  async otorgarRol(email: string) {
+    const limpio = email.trim().toLowerCase();
+    const usuario = await this.prisma.user.findUnique({
+      where: { email: limpio },
+      select: { id: true, esModerador: true },
+    });
+
+    if (!usuario) {
+      return {
+        ok: false as const,
+        error: { code: 'NO_ENCONTRADO', message: 'No hay cuenta con ese correo.' },
+      };
+    }
+
+    if (usuario.esModerador) {
+      return { ok: true as const, data: { esModerador: true, yaLoEra: true } };
+    }
+
+    await this.prisma.user.update({
+      where: { id: usuario.id },
+      data: { esModerador: true, moderadorDesde: new Date() },
+    });
+
+    this.log.log(`Rol de moderador otorgado a ${limpio}.`);
+    return { ok: true as const, data: { esModerador: true, yaLoEra: false } };
+  }
+
+  /** Takes the role away. The same guard, for the same reason. */
+  async quitarRol(email: string) {
+    const limpio = email.trim().toLowerCase();
+    const usuario = await this.prisma.user.findUnique({
+      where: { email: limpio },
+      select: { id: true },
+    });
+
+    if (!usuario) {
+      return {
+        ok: false as const,
+        error: { code: 'NO_ENCONTRADO', message: 'No hay cuenta con ese correo.' },
+      };
+    }
+
+    await this.prisma.user.update({
+      where: { id: usuario.id },
+      data: { esModerador: false, moderadorDesde: null },
+    });
+
+    this.log.log(`Rol de moderador retirado a ${limpio}.`);
+    return { ok: true as const, data: { esModerador: false } };
+  }
+
+  /** Who moderates, and since when. */
+  async moderadores() {
+    const filas = await this.prisma.user.findMany({
+      where: { esModerador: true },
+      select: { id: true, email: true, moderadorDesde: true },
+      orderBy: { moderadorDesde: 'asc' },
+    });
+    return { ok: true as const, data: filas };
+  }
+
   /** How many are waiting, so the number can be checked without reading. */
   async pendientes() {
     const abiertas = await this.prisma.denuncia.count({ where: { estado: 'abierta' } });

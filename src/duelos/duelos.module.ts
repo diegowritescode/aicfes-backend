@@ -8,10 +8,18 @@ import { PersistenceModule } from '../persistence/persistence.module';
 import { ItemsModule } from '../items/items.module';
 import { CalidadModule } from '../calidad/calidad.module';
 import { CorreoService } from '../common/correo.service';
+import { ModeracionGuard, SoloSecretoGuard } from '../common/guards/moderacion.guard';
 
 @Module({
   imports: [PersistenceModule, ItemsModule, CalidadModule],
   controllers: [DuelosController, ModeracionController],
-  providers: [DuelosService, AmigosService, ModeracionService, CorreoService],
+  providers: [
+    DuelosService,
+    AmigosService,
+    ModeracionService,
+    CorreoService,
+    ModeracionGuard,
+    SoloSecretoGuard,
+  ],
 })
 export class DuelosModule {}

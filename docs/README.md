@@ -84,6 +84,7 @@ valor está en saber qué se pensaba entonces.
 | [31](adr/0031-contrarreloj-draws-from-the-bank-entrenar-generates.md) | Contrarreloj saca del banco, entrenar genera |
 | [32](adr/0032-duels-are-found-by-alias-with-moderation-in-the-same-migration.md) | Los duelos se buscan por alias, con moderación en la misma migración |
 | [33](adr/0033-the-moderation-queue-is-read-with-a-server-side-secret.md) | La cola de moderación se lee con un secreto del servidor |
+| [34](adr/0034-moderation-is-a-role-the-secret-only-grants-it.md) | Moderar es un rol; el secreto solo lo otorga |
 
 Del 11 al 18 y del 25 al 30 son **retroactivos**: decisiones que se
 tomaron en el código y nunca se escribieron. Se recuperaron del
