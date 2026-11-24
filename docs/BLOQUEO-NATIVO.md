@@ -203,6 +203,45 @@ comportamiento anterior.
 
 ---
 
+## Probado en un teléfono real (23 nov 2026)
+
+Primera prueba del módulo fuera del emulador, en el Xiaomi de Diego
+con un APK `preview`. Lo que se comprobó y lo que salió mal.
+
+**Funciona:** el módulo responde `capacidades` con
+`blocking: "friction"`, `applications: true`, `shieldOpenApp:
+"direct"` y un tope de **19 actividades vigiladas**
+(`maxMonitoredActivities`). Los permisos se piden de verdad y de a
+uno: `overlay` pasó de `undetermined` a `granted`, y después
+`usageAccess`. O sea, el camino de permisos es real en Android.
+
+**La trampa que nadie documenta, y nos va a pegar al validar:**
+Android 13+ **bloquea el "Acceso de uso"** para apps instaladas por
+fuera de Play Store. El sistema no lo dice en el diálogo: hay que ir a
+Ajustes → Aplicaciones → AICFES → menú de tres puntos → **"Permitir
+ajustes restringidos"**, y recién ahí el permiso se puede conceder.
+
+Esto **no es un teléfono raro**: le pasa a cualquiera que instale un
+APK directo, que es exactamente cómo vamos a poner la app frente a
+estudiantes para validar el peaje. Un estudiante que llegue a ese
+muro sin instrucciones abandona ahí. El onboarding tiene que
+detectarlo y explicarlo con esas palabras, no con "conceda el permiso
+de acceso de uso".
+
+**Lo que falló y era culpa nuestra, no del módulo:** `<ActivityPicker>`
+salió como un recuadro vacío. La vista nativa se mide con el `style`
+que React Native le pasa, y sin uno queda en **altura cero**. El
+README del módulo pasa `style={{ flex: 1 }}` por esta razón. Con el
+recuadro vacío el módulo parecía roto cuando lo único que faltaba era
+una altura.
+
+Segundo error del mismo banco: el `onSelectionChange` leía un campo
+`count` que no existe. El payload es `{metadata, tokens}` y la cuenta
+está en `metadata.applicationCount`. Habría impreso `?` y parecido
+otro fallo del selector.
+
+---
+
 ## Qué haría falta cuando se decida construirlo
 
 En orden, y el primero es el que decide si vale la pena:
@@ -212,7 +251,10 @@ En orden, y el primero es el que decide si vale la pena:
    bloqueo, desbloqueo temporal.
 2. El onboarding de permisos. Son varios pasos, uno por pantalla del
    sistema, y el módulo los expone de a uno
-   (`requestScreenTimePermissionsAsync` con `step`).
+   (`requestScreenTimePermissionsAsync` con `step`). **Tiene que
+   cubrir los ajustes restringidos de Android 13+** (ver arriba): sin
+   eso, un estudiante con un APK instalado a mano se queda trancado en
+   el permiso de acceso de uso sin entender por qué.
 3. El selector nativo de apps (`<ActivityPicker>`), que es donde el
    estudiante elige qué bloquear.
 4. Conectar el botón del escudo a la ruta `/peaje`, que ya existe.
