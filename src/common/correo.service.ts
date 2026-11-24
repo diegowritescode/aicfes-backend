@@ -25,15 +25,26 @@ export class CorreoService {
     return v && v.trim().length > 0 ? v.trim() : null;
   }
 
-  private get remitente(): string {
-    return (
-      this.config.get<string>('CORREO_REMITENTE')?.trim() ||
-      'AICFES <no-reply@aicfes.deviego.xyz>'
-    );
+  /**
+   * Who the email says it is from.
+   *
+   * **No default**, and that is the fix for a real failure: it used
+   * to fall back to `no-reply@aicfes.deviego.xyz`, a domain nobody
+   * had verified with Resend, so every send came back 403 while the
+   * configuration looked complete. A missing sender now disables
+   * sending the same way a missing key does — visibly, in the log,
+   * instead of at the provider.
+   *
+   * The domain has to be verified in Resend. An unverified one is
+   * refused no matter how the address is spelled.
+   */
+  private get remitente(): string | null {
+    const v = this.config.get<string>('CORREO_REMITENTE')?.trim();
+    return v && v.length > 0 ? v : null;
   }
 
   get habilitado(): boolean {
-    return this.clave !== null;
+    return this.clave !== null && this.remitente !== null;
   }
 
   /**
@@ -49,12 +60,14 @@ export class CorreoService {
     texto: string;
   }): Promise<{ enviado: boolean; motivo?: string }> {
     const clave = this.clave;
+    const de = this.remitente;
 
-    if (!clave) {
+    if (!clave || !de) {
       this.log.warn(
-        `Sin RESEND_API_KEY: no se envió "${params.asunto}" a ${params.para}.`,
+        `Sin ${!clave ? 'RESEND_API_KEY' : 'CORREO_REMITENTE'}: no se envió ` +
+          `"${params.asunto}" a ${params.para}.`,
       );
-      return { enviado: false, motivo: 'SIN_CLAVE' };
+      return { enviado: false, motivo: !clave ? 'SIN_CLAVE' : 'SIN_REMITENTE' };
     }
 
     try {
@@ -70,7 +83,7 @@ export class CorreoService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: this.remitente,
+          from: de,
           to: [params.para],
           subject: params.asunto,
           text: params.texto,

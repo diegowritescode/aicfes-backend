@@ -147,12 +147,34 @@ el servidor:
 ```bash
 RESEND_API_KEY=...          # la misma clave que usa Zyrcle sirve
 MODERACION_CORREO=usted@sucorreo.com
-CORREO_REMITENTE=...        # opcional; por omisión no-reply@aicfes.deviego.xyz
+CORREO_REMITENTE=AICFES <no-reply@un-dominio-verificado>
 ```
+
+**Las tres hacen falta.** `CORREO_REMITENTE` no tiene valor por
+omisión a propósito: lo tuvo, apuntando a `aicfes.deviego.xyz`, y
+**todos los envíos fallaron con 403** porque ese dominio no estaba
+verificado en Resend. La configuración se veía completa y el correo
+no llegaba. Ahora, sin remitente, no se intenta enviar y se anota en
+el log, que es donde se ve.
+
+**El dominio del remitente tiene que estar verificado en Resend**
+(resend.com/domains). Uno sin verificar se rechaza, se escriba como
+se escriba la dirección. Hoy `zyrcle.deviego.xyz` lo está y
+`aicfes.deviego.xyz` no.
 
 Sin ellas no se envía nada y queda anotado en el log — la denuncia se
 guarda igual y la cola se sigue leyendo en la app. Una denuncia nunca
 falla porque el correo esté mal configurado.
+
+**Para comprobar que el correo funciona**, basta con mirar el log
+después de una denuncia:
+
+```bash
+docker compose logs api --since 10m | grep -i correo
+```
+
+Si dice `Resend respondió 403`, el dominio no está verificado. Si no
+dice nada, salió bien.
 
 **El asunto lleva el patrón adelante**, porque es la única línea que
 siempre se lee: "3 personas denunciaron a fulano" en vez de "nueva
