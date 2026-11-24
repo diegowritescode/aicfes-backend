@@ -1,6 +1,24 @@
-# Contrarreloj (Time Trial) - Backend v1
+# Contrarreloj (Time Trial) - Backend
 
 Este documento describe los endpoints y reglas del modo Contrarreloj.
+
+> **Actualizado el 23 nov 2026.** Dos cosas cambiaron desde la primera
+> versión y esta página las traía mal:
+>
+> **Los modos.** `sprint_10`, `reto_5` y `explosivo` están retirados
+> (ADR 25). Los tres daban 60 segundos por pregunta, así que no había
+> escalera — y el examen real da 64, con lo que el modo llamado
+> "explosivo" era *más fácil* que el examen. Hoy son cinco niveles
+> anclados a ese número: Calentamiento (90s), Ritmo real (64s), Bajo
+> presión (45s), Muerte súbita (30s) y Las cinco áreas (64s). Ninguno
+> fija un área: todos preguntan al perfil de debilidades.
+>
+> **De dónde salen las preguntas.** Ya no se generan: salen del banco
+> verificado, y solo se genera lo que falte (ADR 31). Antes una ronda
+> de ocho eran ocho peticiones al modelo por preguntas que ya
+> existían, y "Las cinco áreas" hacía cinco llamadas **en secuencia**.
+> Medido en producción el 23 nov 2026: los tres modos probados
+> responden en **0,5-0,6 segundos con cero generaciones**.
 
 ## Endpoints
 
@@ -13,16 +31,20 @@ Este documento describe los endpoints y reglas del modo Contrarreloj.
   "ok": true,
   "data": [
     {
-      "id": "sprint_10",
-      "title": "Sprint 10",
-      "description": "10 preguntas mixtas en 10 minutos",
-      "timeLimitSeconds": 600,
-      "questions": 10,
+      "id": "simulacro-mixto",
+      "title": "Las cinco áreas",
+      "description": "Una de cada área, como viene el examen: revuelto y sin avisar.",
+      "timeLimitSeconds": 320,
+      "questions": 5,
+      "nivel": 2,
+      "segundosPorPregunta": 64,
+      "area": null,
+      "dificultad": null,
       "mix": [
-        { "area": "MAT", "dificultad": "media", "n": 2 },
-        { "area": "LC", "dificultad": "media", "n": 3 },
-        { "area": "CN", "dificultad": "media", "n": 2 },
-        { "area": "SOC", "dificultad": "media", "n": 2 },
+        { "area": "MAT", "dificultad": "media", "n": 1 },
+        { "area": "LC", "dificultad": "media", "n": 1 },
+        { "area": "CN", "dificultad": "media", "n": 1 },
+        { "area": "SOC", "dificultad": "media", "n": 1 },
         { "area": "ING", "dificultad": "media", "n": 1 }
       ]
     }
@@ -38,7 +60,7 @@ Este documento describe los endpoints y reglas del modo Contrarreloj.
 
 Modo predefinido:
 ```json
-{ "modeId": "sprint_10" }
+{ "modeId": "ritmo-real" }
 ```
 
 Modo personalizado:

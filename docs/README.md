@@ -12,6 +12,36 @@
 | saber por qué algo es como es | [adr/](adr/) |
 | arrancar el proyecto | [../README.md](../README.md) |
 
+## Qué funciona hoy
+
+Al **23 de noviembre de 2026**. Cada línea se comprobó contra
+producción o contra un servidor corriendo, no contra el código.
+
+| | Estado |
+|---|---|
+| Entrenar, simulacro, repasar errores | en producción |
+| Contrarreloj | del banco, **0,5-0,6 s y sin costo** por ronda |
+| Racha con perdón de un día | en producción, y la pantalla lo dice |
+| Duelos 1v1 asíncronos | backend y móvil, **sin estudiantes reales todavía** |
+| Alias, bloqueo y denuncia | en producción |
+| Cola de moderación | leíble desde el teléfono; cerrada sin su secreto |
+| El peaje dentro de la app | funciona |
+| El bloqueo de apps en Android | módulo probado en un teléfono, **sin integrar** |
+| Pagos | no existen, y es deliberado |
+
+**Pruebas:** 294 en el backend, 340 en el móvil.
+
+**Banco de preguntas:** 331 ítems verificados (53 LC, 68 MAT, 68 SOC,
+73 CN, 69 ING), suficientes para un simulacro completo de 254. El
+número sube solo cuando se generan preguntas nuevas — consúltelo con
+`GET /api/items/bank/stats` en vez de confiar en esta línea.
+
+**Lo que falta y tiene a alguien esperando del otro lado:** las
+denuncias se pueden leer, pero nadie recibe aviso con la app cerrada
+(ADR 33). Y el peaje no se ha puesto delante de ningún estudiante real
+— [VALIDAR-EL-PEAJE.md](VALIDAR-EL-PEAJE.md) dice cómo hacerlo y qué
+mirar.
+
 ## Las decisiones (ADR)
 
 Un ADR registra una decisión: qué problema había, qué alternativas se

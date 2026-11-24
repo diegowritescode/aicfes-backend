@@ -290,6 +290,14 @@ Hace falta: términos explícitos, consentimiento verificable para el
 modo estricto en menores, y revisión legal antes de publicar. Qustodio
 vive de esto, así que se puede; no se improvisa.
 
+**Lo primero de eso ya existe, por otra razón.** Los duelos (23 nov
+2026) trajeron `tutorAutorizoEn`: una autorización del acudiente,
+fechada, que condiciona la búsqueda por alias. Es **declarada, no
+verificada** — una app no puede comprobar quién tocó el botón — y eso
+es justo la diferencia entre lo que hay y el "consentimiento
+verificable" que este párrafo pide. Sirve como base y como lugar donde
+engancharlo; no lo reemplaza.
+
 **Esto es un proyecto aparte**, no una funcionalidad. App nativa,
 permisos, políticas de dos tiendas y asunto legal de menores.
 

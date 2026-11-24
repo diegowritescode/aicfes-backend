@@ -1,14 +1,23 @@
 # 📚 AICFES Item Generator API - Documentación Completa
 
-> **⚠️ Incompleto. Verificado el 22 nov 2026.**
+> **⚠️ Incompleto. Revisado el 23 nov 2026.**
 >
-> Esta página es anterior a siete módulos y no documenta ninguno de
-> ellos: `auth`, `tutoria`, `figuras`, `simulacro`, `time-trial`,
-> `error-del-dia` ni `achievements`.
+> Esta página solo cubre `items` y `health`. Es anterior a nueve
+> módulos y no documenta ninguno: `auth`, `tutoria`, `figuras`,
+> `simulacro`, `time-trial`, `error-del-dia`, `achievements`,
+> `repaso` ni `duelos`.
 >
-> Para el catálogo real y siempre al día: **`/api/docs`** (Swagger, se
-> genera del código). Para entender los flujos:
-> [ARQUITECTURA.md](ARQUITECTURA.md).
+> **No se va a completar a mano**, y eso es deliberado: un catálogo
+> escrito a mano se desactualiza en silencio, que es exactamente lo
+> que le pasó a esta página. Para el catálogo real y siempre al día:
+> **`/api/docs`** (Swagger, se genera del código).
+>
+> Una excepción: `moderacion` no aparece en Swagger tampoco, por
+> `@ApiExcludeController`. Está documentado en
+> [MODERACION.md](MODERACION.md), que es donde tiene sentido —
+> es un runbook, no un catálogo.
+>
+> Para entender los flujos: [ARQUITECTURA.md](ARQUITECTURA.md).
 
 ## 🔗 URLs de Documentación
 

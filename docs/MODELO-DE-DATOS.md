@@ -22,6 +22,9 @@ erDiagram
     User ||--o{ PerfilDebilidad : "tiene"
     User ||--o{ Tutoria : "conversa"
     User ||--o{ Simulacro : "presenta"
+    User ||--o{ Duelo : "reta y es retado"
+    User ||--o{ Bloqueo : "bloquea"
+    User ||--o{ Denuncia : "denuncia"
 
     StudySession ||--o{ Answer : "contiene"
     StudySession ||--|| Feedback : "produce"
@@ -153,6 +156,49 @@ diarias. El progreso lleva `date` como texto y `unique(userId,
 missionId, date)`: la misma misión del mismo día no se completa dos
 veces.
 
+### Lo social, y lo que hace falta para que sea seguro
+
+Entró el 23 nov 2026 con los duelos, y las tres tablas llegaron en la
+**misma migración** a propósito (ADR 32): el público es de 16-18, y una
+versión con búsqueda por alias y sin bloqueo es una ventana en la que
+un menor acosado no puede defenderse.
+
+**`Duelo`** — dos estudiantes, las mismas cinco preguntas, cada uno
+cuando pueda. `itemIds` guarda las preguntas **en el duelo**, no por
+jugador: un duelo donde cada uno recibe preguntas distintas compara
+suerte, no conocimiento. Los marcadores van en `Json` porque el duelo
+se lee entero y nunca se consulta por esos números. `expiraEn` existe
+porque una invitación que no caduca deja una notificación que nadie
+puede quitar.
+
+**`Bloqueo`** — una fila por par, con `unique(bloqueadorId,
+bloqueadoId)`: bloquear dos veces es lo mismo que bloquear una. Se
+consulta en **ambas direcciones**, así ninguno de los dos aparece para
+el otro.
+
+**`Denuncia`** — guardada, no enviada por correo: una denuncia que
+llega como notificación se pierde, y el mismo alias denunciado por
+tres personas distintas es una señal que ningún mensaje suelto
+contiene. El índice `(estado, creadoEn)` sirve a la única consulta que
+la moderación corre: qué sigue abierto, lo más viejo primero.
+
+**Tres columnas nuevas en `User`:** `alias` (único, guardado en
+minúsculas para que el índice sea insensible a mayúsculas — `Camilo` y
+`camilo` no pueden ser dos cuentas que un compañero no distingue),
+`aliasBuscable` y `tutorAutorizoEn`.
+
+Las dos últimas son decisiones distintas a propósito.
+`tutorAutorizoEn` es la autorización del acudiente que pide la Ley 1581
+de 2012 para tratar datos de un menor, y **condiciona la búsqueda, no
+la cuenta**: sin ella la app funciona entera y uno simplemente no
+aparece. `aliasBuscable` es el interruptor del propio estudiante, que
+puede apagarlo sin perder el nombre con el que sus amigos lo conocen.
+
+Detalle de la migración que vale saber: `aliasBuscable` quedó en `true`
+por omisión para las filas que ya existían, lo que suena alarmante y no
+lo es — `tutorAutorizoEn` es `null` en todas ellas y se evalúa primero,
+así que nadie quedó expuesto. Hay prueba que fija ese orden.
+
 ### Lo que el sistema sabe de sí mismo
 
 **`PerfilDebilidad`** — por usuario, área y tema: cuántas respondió,
@@ -180,14 +226,14 @@ flowchart LR
 **Un hueco conocido:** las columnas `embedding` están declaradas como
 `Unsupported("vector(1536)")` y **no hay índice HNSW ni IVFFlat** en
 ninguna migración. Cada búsqueda de duplicado recorre el área entera.
-Con el banco actual (326 ítems servibles, ~2.400 de referencia) no se
-nota; con diez veces más, sí.
+Con el banco actual (331 ítems servibles al 23 nov 2026, ~2.400 de
+referencia) no se nota; con diez veces más, sí.
 
 ---
 
 ## Las migraciones
 
-16, en orden cronológico. Solo una toca algo existente:
+19, en orden cronológico. Solo una toca algo existente:
 `20260113181155_fix_foreign_key_reference` quita y vuelve a poner la
 llave foránea de `GeneratedItem` hacia `GenerationRequest.requestId`.
 Ninguna borra tablas, columnas ni datos.
@@ -198,6 +244,12 @@ saberlo antes de escribir una consulta.
 **Son forward-only.** No hay migración de reversa. Volver atrás es
 restaurar un respaldo, lo que hace que el respaldo sea parte del plan de
 despliegue y no un extra.
+
+La última, `20261123190000_duelos_alias_moderacion`, agrega las tres
+tablas sociales y tres columnas a `User` de una vez. Se escribió a
+mano con `prisma migrate diff` —`migrate dev` no corre sin terminal
+interactiva— y se verificó aplicándola contra una base vacía y
+comprobando que después no quedaba deriva.
 
 ---
 

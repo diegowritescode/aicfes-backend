@@ -60,6 +60,7 @@ flowchart TD
     tutoria["tutoria"]
     simulacro["simulacro"]
     timetrial["time-trial"]
+    duelos["duelos<br/>1v1, alias, moderación"]
     feedback["feedback"]
     figuras["figuras"]
     health["health"]
@@ -84,11 +85,23 @@ flowchart TD
     feedback --> items
     feedback --> dashboard
     feedback --> persistence
+    duelos --> items
+    duelos --> calidad
+    duelos --> persistence
 ```
 
 `health` no importa nada, a propósito: tiene que poder responder cuando
 lo demás esté roto. (Hoy no consulta la base, lo que significa que puede
 decir 200 con Postgres caído — anotado como deuda.)
+
+**Por qué la moderación vive dentro de `duelos` y no aparte:** no es
+una función separada. La búsqueda por alias es lo que crea la
+necesidad de bloquear y denunciar, y separarlas haría posible
+desplegar la búsqueda sin ellas — que es justo la ventana en la que un
+menor acosado no puede defenderse (ADR 32). `ModeracionController`
+comparte módulo con `DuelosController` por esa razón, aunque se
+autentiquen distinto: uno con la sesión del estudiante, el otro con un
+secreto del servidor (ADR 33).
 
 **Por qué `calidad` es su propio módulo:** tanto el generador como el
 panel registran medidas. Si la medición viviera dentro de cualquiera de
