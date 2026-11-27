@@ -143,6 +143,7 @@ model User {
   bloqueosRecibidos Bloqueo[]      @relation("bloqueado")
   denunciasHechas Denuncia[]       @relation("denunciante")
   denunciasRecibidas Denuncia[]    @relation("denunciado")
+  informesSemanales InformeSemanal[]
 
   @@index([createdAt])
   /// For the one query this pair exists to answer: which subscriptions
@@ -251,6 +252,12 @@ model Answer {
 
   @@index([sessionId])
   @@index([itemId])
+  /// The weekly report groups answers by topic inside a seven-day
+  /// window, which without this is a sequential scan of every answer
+  /// ever recorded — fine at thirteen rows, and the slowest query in
+  /// the service after a year of use. Verified with EXPLAIN: the plan
+  /// went from `Seq Scan on Answer` to an index scan.
+  @@index([createdAt])
 }
 
 /// What a learner keeps getting wrong, and at what grain.
@@ -714,4 +721,51 @@ model Amistad {
   /// The two lists a learner opens: who they asked, and who asked them.
   @@index([pidioId, estado])
   @@index([recibioId, estado])
+}
+
+/// What this learner is carrying, written once a week.
+///
+/// Not the same thing as `Feedback`, which is a post-mortem of one
+/// session: that one answers "how did those eight questions go", and
+/// a learner who wants to know where they stand cannot get it by
+/// reading twenty of them.
+///
+/// **The model does not work out the weaknesses. It writes them up.**
+/// `DebilidadesService.temasDebiles` already returns them per topic,
+/// with the typical mistake and a priority that decays with age, and
+/// it is deterministic and tested. A report where the model inferred
+/// "you are weak at angles" from raw answers is a report that lies the
+/// first time it infers wrong, and the learner notices in the opening
+/// sentence. So the numbers arrive already computed and `datos` keeps
+/// exactly what was handed over, which is how "where did it get that"
+/// gets answered without calling the model again.
+model InformeSemanal {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Monday 00:00 in the learner's own timezone, stored as UTC. The
+  /// week is the unit of idempotency: two requests on the same Tuesday
+  /// return one report, not two invoices. This is what `sessionId
+  /// @unique` does for `Feedback`.
+  semanaInicio  DateTime
+  resumen       String
+  /// [{area?, nota}] — the shape `FeedbackResponseSchema` already uses,
+  /// so one screen can render either.
+  fortalezas    Json
+  debilidades   Json
+  /// [{area, tema, titulo, detalle}]. `area` and `tema` are the ones
+  /// the server supplied, never ones the model chose: they are the key
+  /// contrarreloj and entrenar use to ask for exercises afterwards, and
+  /// a topic the bank has never heard of would return nothing.
+  plan          Json
+  /// What was handed to the model, kept verbatim.
+  datos         Json
+  generadoEn    DateTime @default(now())
+  modelo        String
+  promptVersion String
+
+  /// One report per learner per week. The week is the idempotency key,
+  /// so a second request inside it reads instead of spending.
+  @@unique([userId, semanaInicio])
+  @@index([userId, generadoEn])
 }

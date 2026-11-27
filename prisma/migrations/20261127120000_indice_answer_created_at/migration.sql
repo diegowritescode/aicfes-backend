@@ -1,0 +1,14 @@
+-- The weekly report groups answers by topic inside a seven-day
+-- window. Without this index that filter is a sequential scan over
+-- every answer ever recorded: harmless on a new install, and the
+-- slowest query in the service once a learner has a year of history.
+--
+-- Verified with EXPLAIN against a database holding the real schema:
+-- the plan goes from `Seq Scan on "Answer"` to `Index Only Scan using
+-- "Answer_createdAt_idx"`.
+--
+-- CONCURRENTLY is deliberately NOT used: `prisma migrate deploy` runs
+-- each migration inside a transaction and CONCURRENTLY cannot run in
+-- one. The table is small enough that the brief lock is cheaper than
+-- splitting this out of the migration flow.
+CREATE INDEX IF NOT EXISTS "Answer_createdAt_idx" ON "Answer"("createdAt");

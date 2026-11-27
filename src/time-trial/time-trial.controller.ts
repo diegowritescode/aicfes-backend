@@ -50,6 +50,7 @@ export class TimeTrialController {
           properties: {
             area: { type: 'string', enum: ['MAT', 'LC', 'CN', 'SOC', 'ING'] },
             dificultad: { type: 'string', enum: ['facil', 'media', 'alta'] },
+            tema: { type: 'string' },
             timeLimitSeconds: { type: 'number' },
             questions: { type: 'number' },
           },
@@ -87,10 +88,15 @@ export class TimeTrialController {
     const result = await this.timeTrialService.startTimeTrial({
       userId,
       modeId: parsed.data.modeId,
+      /* `tema` is listed here as well as in the schema: this cast is
+         hand-written, so a field the schema accepts but this type
+         omits is silently dropped on the way through — which is
+         exactly how the topic failed to reach the bank before. */
       custom: parsed.data.custom as
         | {
             area: string;
             dificultad: string;
+            tema?: string;
             timeLimitSeconds: number;
             questions: number;
           }
