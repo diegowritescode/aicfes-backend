@@ -9,6 +9,7 @@ import {
   denunciarSchema,
   entregarSchema,
   ponerAliasSchema,
+  ponerDescripcionSchema,
   retarSchema,
 } from './dto/duelos.schema';
 
@@ -47,6 +48,16 @@ export class DuelosController {
   @ApiOperation({ summary: 'Mi alias y si aparezco en búsquedas' })
   async perfil(@Req() req: any) {
     return this.duelos.miPerfil(this.userId(req));
+  }
+
+  @Post('descripcion')
+  @ApiOperation({ summary: 'Escribir o borrar mi descripción' })
+  async descripcion(@Req() req: any, @Body() body: unknown) {
+    const parsed = ponerDescripcionSchema.safeParse(body);
+    if (!parsed.success) {
+      return this.invalido('La descripción no puede pasar de 120 caracteres.');
+    }
+    return this.duelos.ponerDescripcion(this.userId(req), parsed.data.descripcion);
   }
 
   @Post('alias')
@@ -152,6 +163,17 @@ export class DuelosController {
   @ApiOperation({ summary: 'Mis amigos y las solicitudes pendientes' })
   async amigosMios(@Req() req: any) {
     return this.amigos.mios(this.userId(req));
+  }
+
+  /* Before `amigos/:id` on purpose: Nest matches in declaration
+     order, and a GET for `amigos/perfil/x` would otherwise never be
+     reached if a wildcard GET existed above it. Filed under `amigos/`
+     rather than at the root because the route IS the rule — only a
+     friend can read it. */
+  @Get('amigos/:id/perfil')
+  @ApiOperation({ summary: 'El perfil de un amigo, con la racha entre los dos' })
+  async perfilDeAmigo(@Req() req: any, @Param('id') id: string) {
+    return this.duelos.perfilDeAmigo(this.userId(req), id);
   }
 
   @Post('amigos/:id')

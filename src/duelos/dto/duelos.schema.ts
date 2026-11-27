@@ -16,6 +16,22 @@ export const ponerAliasSchema = z.object({
   alias: z.string().min(1).max(64),
 });
 
+/**
+ * The line a learner writes about themselves.
+ *
+ * Capped at the same 120 the column is. Free text written by minors
+ * and read by minors, so the length is part of the moderation
+ * surface: long enough to say «me falta física», short enough that it
+ * cannot hold a phone number and a plea.
+ *
+ * An empty string clears it, which is why `min` is 0: «I removed my
+ * bio» is a thing a learner does, and forcing them to write something
+ * to stop saying the old thing would be worse.
+ */
+export const ponerDescripcionSchema = z.object({
+  descripcion: z.string().max(120),
+});
+
 export const buscarSchema = z.object({
   q: z.string().min(2).max(32),
 });
