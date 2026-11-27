@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import type { Area } from '@prisma/client';
 import { PrismaService } from '../persistence/prisma.service';
 import { rachaJuntos } from './model/racha-juntos';
+import { marcaDelRival, paraGanar, soloPorTiempo } from './model/marca-a-batir';
 
 /**
  * How far back the streak looks.
@@ -679,11 +680,31 @@ export class DuelosService {
     };
   }
 
-  /** The questions of a duel, without their answers. */
+  /**
+   * The questions of a duel, and the mark the rival left.
+   *
+   * The mark is the point of this change. The asynchronous duel worked
+   * without it, and that was the flaw: a learner answered five
+   * questions in silence and only discovered at the end that they had
+   * been racing anybody. The score was already in the row being read
+   * here — written when the first player finished — and was simply
+   * never sent.
+   *
+   * Still no `respuesta_correcta` and no `explicaciones`. The rule does
+   * not bend for this: «Camilo got 4 of 5» tells a learner how hard to
+   * try, and WHICH four would tell them what to answer.
+   */
   async preguntas(userId: string, dueloId: string) {
     const duelo = await this.prisma.duelo.findUnique({
       where: { id: dueloId },
-      select: { retadorId: true, rivalId: true, estado: true, itemIds: true },
+      select: {
+        retadorId: true,
+        rivalId: true,
+        estado: true,
+        itemIds: true,
+        resultadoRetador: true,
+        resultadoRival: true,
+      },
     });
 
     if (!duelo || (duelo.retadorId !== userId && duelo.rivalId !== userId)) {
@@ -713,7 +734,42 @@ export class DuelosService {
     const porId = new Map(items.map((i) => [i.id, i]));
     const ordenados = duelo.itemIds.map((id) => porId.get(id)).filter(Boolean);
 
-    return { ok: true as const, data: ordenados };
+    /* An object, which changes the shape `data` had.
+       
+       `data` used to be a bare array, and the installed app validates
+       it with `z.array(...)`: it will reject this and refuse to open a
+       duel. That is deliberate and it makes a matching APK mandatory
+       rather than optional.
+
+       The alternative was to hang the mark off the array as extra
+       properties, so old builds kept seeing an array. I wrote that
+       version first. It cannot work: `JSON.stringify` on an array
+       drops every non-index property, so the mark would have been
+       silently absent from the response and nothing in the type system
+       would have said so. Checked in a REPL rather than reasoned
+       about, which is the only reason it was caught before shipping. */
+    const marca = marcaDelRival({
+      soyRetador: duelo.retadorId === userId,
+      resultadoRetador: duelo.resultadoRetador,
+      resultadoRival: duelo.resultadoRival,
+      deCuantas: duelo.itemIds.length,
+    });
+
+    return {
+      ok: true as const,
+      data: {
+        preguntas: ordenados,
+        /* Null when the rival has not played, which is the common case
+           for whoever opens first. The phone renders that as «nobody
+           has played yet», never as a rival who scored nothing. */
+        marcaDelRival: marca,
+        /* Computed here so both players are told the same thing by the
+           same rule, and because the tie-break is time: matching the
+           rival's score is not enough unless this player is faster. */
+        paraGanar: marca ? paraGanar(marca) : null,
+        soloPorTiempo: marca ? soloPorTiempo(marca) : false,
+      },
+    };
   }
 
   /**
