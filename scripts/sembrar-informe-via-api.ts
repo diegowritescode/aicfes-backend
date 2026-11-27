@@ -34,19 +34,27 @@ const CORREO = process.env.CORREO;
 const CLAVE = process.env.CLAVE;
 
 /**
- * The story the data tells.
+ * The shape of the week, per area.
  *
- * Times are deliberately spread. A first version gave every topic
- * 70-95 seconds and the «slow» list came out empty — which was the
- * code being right: slow means 1.5x the learner's own median, and a
- * learner slow at everything has a pacing problem rather than a topic
- * problem. Uniform times cannot show the feature at all.
+ * Topics are NOT listed here, and that is the point. A first version
+ * named `angulos` and `fracciones`, and asking contrarreloj for
+ * `angulos` came back with `pitagoras` and `proporcionalidad`: the
+ * bank has no topic called `angulos`, so the topic filter matched
+ * nothing and the area top-up answered instead. The degradation
+ * worked exactly as designed, and the seed was fiction.
+ *
+ * So the topics are read off the items the server actually serves,
+ * and the script shapes accuracy and pace around whatever comes back.
+ *
+ * `rapido` and `lento` are what make the «slow» list mean something:
+ * slow is 1.5x the learner's own median, so a seed where every topic
+ * takes the same time produces an empty list no matter how slow it is.
  */
 const GUION = [
-  { area: 'MAT', total: 14, aciertos: 3, segundos: 110 },
-  { area: 'MAT', total: 12, aciertos: 10, segundos: 95 },
-  { area: 'LC', total: 11, aciertos: 9, segundos: 40 },
-  { area: 'CN', total: 8, aciertos: 2, segundos: 55 },
+  { area: 'MAT', preguntas: 8, aciertos: 2, segundos: 110 },
+  { area: 'MAT', preguntas: 8, aciertos: 7, segundos: 100 },
+  { area: 'LC', preguntas: 8, aciertos: 7, segundos: 35 },
+  { area: 'CN', preguntas: 8, aciertos: 2, segundos: 45 },
 ] as const;
 
 interface Item {
@@ -97,12 +105,21 @@ async function main() {
 
   console.log(`Entrando como ${CORREO} en ${API}`);
 
-  const sesion = await pedir<{ accessToken?: string; token?: string; data?: { accessToken?: string } }>(
-    '/api/auth/login',
-    { metodo: 'POST', cuerpo: { email: CORREO, password: CLAVE } },
-  );
+  const sesion = await pedir<{
+    token?: string;
+    accessToken?: string;
+    data?: { token?: string; accessToken?: string };
+  }>('/api/auth/login', {
+    metodo: 'POST',
+    cuerpo: { email: CORREO, password: CLAVE },
+  });
 
-  const token = sesion.accessToken ?? sesion.token ?? sesion.data?.accessToken;
+  /* `data.token` first: that is what this API actually answers with.
+     The others are kept as fallbacks rather than guesses — the first
+     run of this script looked for `accessToken` at the top level and
+     failed on a login that had in fact succeeded. */
+  const token =
+    sesion.data?.token ?? sesion.data?.accessToken ?? sesion.token ?? sesion.accessToken;
   if (!token) {
     throw new Error(`El login no devolvió token: ${JSON.stringify(sesion).slice(0, 200)}`);
   }
@@ -113,59 +130,56 @@ async function main() {
   const porTema = new Map<string, { total: number; aciertos: number; segundos: number }>();
 
   for (const paso of GUION) {
-    /* Real items from the bank, so `itemId` points at a row whose
-       `tags` the report can read. An invented id would be dropped and
-       the window would come back empty — which is the exact shape of
-       the bug this feature fixed. */
-    const listado = await pedir<{ items?: Item[]; data?: Item[] }>(
-      `/api/items?area=${paso.area}&limit=${paso.total}`,
-      { token },
-    );
+    /* Questions come from contrarreloj, not from `GET /api/items`.
+       Two reasons: that route answered 500 in production because a
+       bare `findMany` returns `tiempoTotalMs`, a BigInt that
+       `JSON.stringify` refuses — a pre-existing bug nothing had hit
+       because the app never calls it. And contrarreloj is the path a
+       learner actually takes, so seeding through it exercises the
+       same code the feature changed. */
+    const ronda = await pedir<{
+      data?: { sessionId?: string; items?: Item[] };
+      sessionId?: string;
+      items?: Item[];
+    }>('/api/time-trial/start', {
+      metodo: 'POST',
+      token,
+      cuerpo: {
+        custom: {
+          area: paso.area,
+          dificultad: 'media',
+          questions: paso.preguntas,
+          timeLimitSeconds: paso.preguntas * 64,
+        },
+      },
+    });
 
-    const items = listado.items ?? listado.data ?? [];
-    const conTema = items.filter((i) => temaDe(i) !== null);
+    const sessionId = ronda.data?.sessionId ?? ronda.sessionId;
+    const items = ronda.data?.items ?? ronda.items ?? [];
 
-    if (conTema.length === 0) {
-      console.log(`  ${paso.area}: el banco no tiene ítems con tema. Saltando.`);
+    if (!sessionId || items.length === 0) {
+      console.log(`  ${paso.area}: la ronda no trajo preguntas. Saltando.`);
       continue;
     }
 
-    const ahora = new Date();
-
-    const sesionEstudio = await pedir<{ sessionId?: string; id?: string; data?: { sessionId?: string } }>(
-      '/api/study-sessions/start',
-      {
-        metodo: 'POST',
-        token,
-        cuerpo: {
-          mode: 'contrarreloj',
-          area: paso.area,
-          dificultad: 'media',
-          startedAt: ahora.toISOString(),
-        },
-      },
-    );
-
-    const sessionId =
-      sesionEstudio.sessionId ?? sesionEstudio.id ?? sesionEstudio.data?.sessionId;
-    if (!sessionId) {
-      throw new Error(`No hubo sessionId: ${JSON.stringify(sesionEstudio).slice(0, 200)}`);
-    }
-
-    const respuestas = [];
-    for (let i = 0; i < paso.total; i += 1) {
-      const item = conTema[i % conTema.length]!;
+    const respuestas = items.map((item, i) => {
       const correcta = i < paso.aciertos;
-      const tema = temaDe(item)!;
+      const tema = temaDe(item);
 
-      const previo = porTema.get(tema) ?? { total: 0, aciertos: 0, segundos: paso.segundos };
-      porTema.set(tema, {
-        total: previo.total + 1,
-        aciertos: previo.aciertos + (correcta ? 1 : 0),
-        segundos: paso.segundos,
-      });
+      if (tema) {
+        const previo = porTema.get(tema) ?? {
+          total: 0,
+          aciertos: 0,
+          segundos: paso.segundos,
+        };
+        porTema.set(tema, {
+          total: previo.total + 1,
+          aciertos: previo.aciertos + (correcta ? 1 : 0),
+          segundos: paso.segundos,
+        });
+      }
 
-      respuestas.push({
+      return {
         sessionId,
         questionIndex: i,
         area: paso.area,
@@ -175,25 +189,29 @@ async function main() {
         itemId: item.id,
         /* Jittered so a median is a median of something. */
         tiempoMs: (paso.segundos + (i % 5) - 2) * 1000,
-      });
-    }
+      };
+    });
 
-    await pedir('/api/answers', { metodo: 'POST', token, cuerpo: { answers: respuestas } });
+    await pedir('/api/answers', {
+      metodo: 'POST',
+      token,
+      cuerpo: { answers: respuestas },
+    });
 
     await pedir(`/api/study-sessions/${sessionId}/complete`, {
       metodo: 'POST',
       token,
       cuerpo: {
         endedAt: new Date().toISOString(),
-        durationSeconds: paso.total * paso.segundos,
-        totalQuestions: paso.total,
-        correctQuestions: paso.aciertos,
+        durationSeconds: respuestas.length * paso.segundos,
+        totalQuestions: respuestas.length,
+        correctQuestions: Math.min(paso.aciertos, respuestas.length),
       },
     });
 
-    respuestasTotales += paso.total;
+    respuestasTotales += respuestas.length;
     console.log(
-      `  ${paso.area}: ${paso.total} respuestas, ${paso.aciertos} correctas, ~${paso.segundos}s cada una`,
+      `  ${paso.area}: ${respuestas.length} respuestas, ${Math.min(paso.aciertos, respuestas.length)} correctas, ~${paso.segundos}s cada una`,
     );
   }
 

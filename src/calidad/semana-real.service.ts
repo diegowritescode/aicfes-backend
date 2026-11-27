@@ -194,18 +194,47 @@ export class SemanaRealService {
     desde: Date,
     hasta: Date,
   ): ResumenDeLaSemana {
-    const temas: TemaDeLaSemana[] = filas.map((fila) => {
-      const respondidas = Number(fila.respondidas);
-      const acertadas = Number(fila.acertadas);
-      const mediana = fila.mediana_ms === null ? null : Number(fila.mediana_ms);
+    /* Grouped by the NORMALISED topic rather than by the raw tag.
+       The SQL groups by `tag.value` as stored, and the bank is not
+       consistent: `razonamiento_cuantitativo` and
+       `razonamiento-cuantitativo` are the same topic written two
+       ways. `DebilidadesService` normalises on write, so the weakness
+       profile holds one spelling and this window would hold the
+       other — and the report's plan carries a topic from the profile
+       and matches it against this window. A mismatch makes a topic
+       the learner did practise score as «no lo practicaste».
+       Measured against production: every underscored tag in the bank
+       was affected. */
+    const porTema = new Map<string, { area: Area; respondidas: number; acertadas: number; medianas: number[] }>();
+
+    for (const fila of filas) {
+      const tema = normalizarTema(fila.tema);
+      if (!tema) continue;
+
+      const clave = `${fila.area}:${tema}`;
+      const previo =
+        porTema.get(clave) ?? { area: fila.area, respondidas: 0, acertadas: 0, medianas: [] };
+
+      previo.respondidas += Number(fila.respondidas);
+      previo.acertadas += Number(fila.acertadas);
+      if (fila.mediana_ms !== null) previo.medianas.push(Number(fila.mediana_ms));
+
+      porTema.set(clave, previo);
+    }
+
+    const temas: TemaDeLaSemana[] = [...porTema].map(([clave, d]) => {
+      /* Two spellings merging means two medians to combine, and their
+         middle is the honest answer: averaging would weight a topic
+         answered twice the same as one answered twenty times. */
+      const mediana = medianaDe(d.medianas);
 
       return {
-        area: fila.area,
-        tema: fila.tema,
-        respondidas,
-        acertadas,
+        area: d.area,
+        tema: clave.slice(clave.indexOf(':') + 1),
+        respondidas: d.respondidas,
+        acertadas: d.acertadas,
         aciertoPorcentaje:
-          respondidas > 0 ? Math.round((acertadas / respondidas) * 100) : 0,
+          d.respondidas > 0 ? Math.round((d.acertadas / d.respondidas) * 100) : 0,
         segundosMediana: mediana === null ? null : Math.round(mediana / 1000),
       };
     });
@@ -258,6 +287,39 @@ export class SemanaRealService {
               .sort((a, b) => (b.segundosMediana ?? 0) - (a.segundosMediana ?? 0)),
     };
   }
+}
+
+/**
+ * A topic spelled the one way the whole system agrees on.
+ *
+ * `DebilidadesService.temasDe` normalises tags on write, so the
+ * weakness profile holds this form. Anything that reads `tags`
+ * directly — like the weekly window — has to apply the same rule, or
+ * the two name the same topic differently and a plan built from one
+ * cannot be matched against the other.
+ *
+ * Returns the empty string for a tag that normalises to nothing, so
+ * the caller can drop it rather than key a row on «».
+ */
+export function normalizarTema(bruto: string): string {
+  return bruto
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    /* Before the character filter, which does not allow `_`: the bank
+       tags with `razonamiento_cuantitativo`, and stripping the
+       underscore yields a topic no item carries. */
+    .replace(/_/g, '-')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+/** The middle of an unsorted list, or null when there is nothing. */
+function medianaDe(valores: readonly number[]): number | null {
+  return mediana([...valores].sort((a, b) => a - b));
 }
 
 /**

@@ -1,6 +1,10 @@
 import { test } from 'node:test';
 import * as assert from 'node:assert/strict';
-import { SemanaRealService, temaLegible } from '../src/calidad/semana-real.service';
+import {
+  SemanaRealService,
+  normalizarTema,
+  temaLegible,
+} from '../src/calidad/semana-real.service';
 
 /**
  * The seven-day window, and why it had to exist.
@@ -17,6 +21,13 @@ import { SemanaRealService, temaLegible } from '../src/calidad/semana-real.servi
  * live and where a wrong one is invisible.
  */
 
+interface Fila {
+  tema: string;
+  aciertoPorcentaje: number;
+  respondidas: number;
+  segundosMediana: number | null;
+}
+
 /** The private sorter, reached without a database. */
 function componer(filas: unknown[]) {
   const servicio = new SemanaRealService(null as never);
@@ -31,9 +42,9 @@ function componer(filas: unknown[]) {
     acertadas: number;
     aciertoPorcentaje: number;
     segundosMediana: number | null;
-    fuertes: Array<{ tema: string; aciertoPorcentaje: number; segundosMediana: number | null }>;
-    flojos: Array<{ tema: string; aciertoPorcentaje: number; segundosMediana: number | null }>;
-    lentos: Array<{ tema: string; segundosMediana: number | null }>;
+    fuertes: Array<Fila>;
+    flojos: Array<Fila>;
+    lentos: Array<Fila>;
   };
 }
 
@@ -196,4 +207,70 @@ test('el tema guardado se vuelve prosa para el generador', () => {
      call site, which is exactly how a second caller gets it wrong. */
   assert.equal(temaLegible('leyes-de-newton'), 'leyes de newton');
   assert.equal(temaLegible('angulos'), 'angulos');
+});
+
+/**
+ * One spelling for one topic.
+ *
+ * Found in production, not in a test: the weekly report's plan said
+ * `razonamientocuantitativo` while the window said
+ * `razonamiento_cuantitativo`. Same topic, two names, so a topic the
+ * learner HAD practised scored as «no lo practicaste» and the plan
+ * pointed at a string no item in the bank carries.
+ *
+ * The cause was ordering: `temasDe` stripped characters not in
+ * `[a-z0-9\s-]` before turning spaces into hyphens, and `_` is not in
+ * that set — so `razonamiento_cuantitativo` lost the underscore
+ * entirely instead of having it converted.
+ */
+
+test('el guion bajo se vuelve guion, no se borra', () => {
+  /* The bank tags with underscores. Stripping them produced topics no
+     item carries, which is the worst kind of wrong: the plan looks
+     fine and matches nothing. */
+  assert.equal(normalizarTema('razonamiento_cuantitativo'), 'razonamiento-cuantitativo');
+  assert.equal(normalizarTema('idea_principal'), 'idea-principal');
+  assert.equal(normalizarTema('lectura_tablas'), 'lectura-tablas');
+});
+
+test('los espacios y los acentos se normalizan como antes', () => {
+  /* The behaviour that was already right must not regress. */
+  assert.equal(normalizarTema('leyes de newton'), 'leyes-de-newton');
+  assert.equal(normalizarTema('Álgebra Básica'), 'algebra-basica');
+});
+
+test('no quedan guiones dobles ni en los bordes', () => {
+  /* Converting underscores can create runs, and a topic keyed on
+     `-raro-` would not match `raro`. */
+  assert.equal(normalizarTema('__raro__'), 'raro');
+  assert.equal(normalizarTema('a _ b'), 'a-b');
+  assert.equal(normalizarTema('  espacios  '), 'espacios');
+});
+
+test('dos escrituras del mismo tema se suman en una sola fila', () => {
+  /* The bank is not consistent, so the same topic arrives spelled two
+     ways in one window. Keeping them apart would split the evidence
+     and could put one half in «fuertes» and the other in «flojos». */
+  const r = componer([
+    { area: 'MAT', tema: 'razonamiento_cuantitativo', respondidas: 4, acertadas: 1, mediana_ms: 100000 },
+    { area: 'MAT', tema: 'razonamiento-cuantitativo', respondidas: 6, acertadas: 1, mediana_ms: 100000 },
+  ]);
+
+  const todos = [...r.fuertes, ...r.flojos];
+  assert.equal(todos.length, 1, 'tenían que fundirse en una fila');
+  assert.equal(todos[0]!.tema, 'razonamiento-cuantitativo');
+  assert.equal(todos[0]!.respondidas, 10);
+  assert.equal(todos[0]!.aciertoPorcentaje, 20);
+});
+
+test('un tema de otra área no se funde con el de esta', () => {
+  /* Same topic name under two areas is two topics: merging them would
+     credit work in one to the other. */
+  const r = componer([
+    { area: 'MAT', tema: 'inferencia', respondidas: 4, acertadas: 4, mediana_ms: 30000 },
+    { area: 'LC', tema: 'inferencia', respondidas: 4, acertadas: 1, mediana_ms: 30000 },
+  ]);
+
+  assert.equal(r.fuertes.length, 1);
+  assert.equal(r.flojos.length, 1);
 });

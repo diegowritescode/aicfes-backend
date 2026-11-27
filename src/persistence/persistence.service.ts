@@ -125,11 +125,43 @@ export class PersistenceService {
     });
   }
 
+  /**
+   * Items of one area, newest first.
+   *
+   * The `select` is not an optimisation, it is the fix for a 500. A
+   * bare `findMany` returns every column, and `tiempoTotalMs` is a
+   * `BigInt` — which `JSON.stringify` refuses to serialise, so the
+   * response threw `TypeError: Do not know how to serialize a BigInt`
+   * and the route answered 500 for every area. It went unnoticed
+   * because the mobile app never calls this endpoint; it surfaced
+   * from a script that did.
+   *
+   * Listing the fields also keeps `embedding`, the quality counters
+   * and the verifier's own answer out of a response that anyone with
+   * a session can read.
+   */
   async getGeneratedItemsByArea(area: Area, limit: number = 100) {
     return this.prisma.generatedItem.findMany({
       where: { area },
       take: limit,
       orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        area: true,
+        dificultad: true,
+        plantilla: true,
+        contexto: true,
+        pregunta: true,
+        opciones: true,
+        respuesta_correcta: true,
+        justificacion: true,
+        /* The topic. This is what a caller needs to practise one. */
+        tags: true,
+        explicaciones: true,
+        figura: true,
+        verified: true,
+        createdAt: true,
+      },
     });
   }
 

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../persistence/prisma.service';
 import { Area } from '@prisma/client';
+import { normalizarTema } from './semana-real.service';
 
 /**
  * What a learner keeps getting wrong, and at what grain.
@@ -223,13 +224,10 @@ export class DebilidadesService {
     const vistos = new Set<string>();
     for (const bruto of tags) {
       if (typeof bruto !== 'string') continue;
-      const tema = bruto
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[̀-ͯ]/g, '')
-        .replace(/[^a-z0-9\s-]/g, '')
-        .trim()
-        .replace(/\s+/g, '-');
+      /* One definition, shared with the weekly window. Both read the
+         same `tags` column, and a topic spelled two ways is a topic
+         the report's plan cannot match against what was practised. */
+      const tema = normalizarTema(bruto);
       /* A one-word tag like "facil" says nothing about the subject,
          and an essay is not a topic either. */
       if (tema.length < 3 || tema.length > 40) continue;
