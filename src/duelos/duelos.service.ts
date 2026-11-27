@@ -1,6 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { Area } from '@prisma/client';
 import { PrismaService } from '../persistence/prisma.service';
+import { rachaJuntos } from './model/racha-juntos';
+
+/**
+ * How far back the streak looks.
+ *
+ * A cap, not a rule: two people who have duelled 300 times do not
+ * need all 300 rows read to know the streak, and an unbounded query
+ * on a hot path is how a profile screen gets slow for exactly the
+ * pair that uses it most. 200 weekly duels is about four years.
+ */
+const MAXIMO_DUELOS_PARA_RACHA = 200;
 import { ItemBankService } from '../items/services/item-bank.service';
 import { CorreoService } from '../common/correo.service';
 import { ConfigService } from '@nestjs/config';
@@ -108,14 +119,20 @@ export class DuelosService {
         aliasBuscable: true,
         tutorAutorizoEn: true,
         esModerador: true,
+        descripcion: true,
       },
     });
     if (!usuario) return fallo('NO_ENCONTRADO', 'Cuenta no encontrada.');
 
-    const { esModerador, ...alias } = usuario;
+    const { esModerador, descripcion, ...alias } = usuario;
     return {
       ok: true as const,
-      data: { ...alias, esModerador, visible: esVisibleEnBusqueda(alias) },
+      data: {
+        ...alias,
+        esModerador,
+        descripcion,
+        visible: esVisibleEnBusqueda(alias),
+      },
     };
   }
 
@@ -681,5 +698,113 @@ export class DuelosService {
     const ordenados = duelo.itemIds.map((id) => porId.get(id)).filter(Boolean);
 
     return { ok: true as const, data: ordenados };
+  }
+
+  /**
+   * The line a learner writes about themselves.
+   *
+   * Trimmed, and an empty one stores null rather than '': «never
+   * wrote one» and «cleared it» should not be two states that look
+   * different in the database and identical on screen.
+   */
+  async ponerDescripcion(userId: string, entrada: string) {
+    const limpia = entrada.trim();
+
+    const usuario = await this.prisma.user.update({
+      where: { id: userId },
+      data: { descripcion: limpia === '' ? null : limpia },
+      select: { descripcion: true },
+    });
+
+    return { ok: true as const, data: usuario };
+  }
+
+  /**
+   * Someone else's profile, as a friend may see it.
+   *
+   * Only between people who are actually friends. An endpoint that
+   * returned any learner's profile by id would turn the duel search —
+   * which exists so minors are found by alias and not browsed — into
+   * a directory, and `aliasBuscable` would stop meaning anything.
+   *
+   * Blocks are checked too, in both directions: a learner who blocked
+   * someone should not have their own profile readable by them, and
+   * the block is what decides visibility everywhere else.
+   */
+  async perfilDeAmigo(userId: string, otroId: string) {
+    const amistad = await this.prisma.amistad.findFirst({
+      where: {
+        estado: 'aceptada',
+        OR: [
+          { pidioId: userId, recibioId: otroId },
+          { pidioId: otroId, recibioId: userId },
+        ],
+      },
+      select: { id: true, resueltaEn: true, creadoEn: true },
+    });
+
+    if (!amistad) {
+      /* The same answer as a missing account, deliberately. Telling a
+         stranger «that person exists but is not your friend» confirms
+         the account to someone who should not be probing for it. */
+      return fallo('NO_ENCONTRADO', 'Perfil no disponible.');
+    }
+
+    const bloqueo = await this.prisma.bloqueo.findFirst({
+      where: {
+        OR: [
+          { bloqueadorId: userId, bloqueadoId: otroId },
+          { bloqueadorId: otroId, bloqueadoId: userId },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (bloqueo) return fallo('NO_ENCONTRADO', 'Perfil no disponible.');
+
+    const [otro, duelos] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: otroId },
+        /* Alias and description only. No email, no plan, no dates
+           that say when they are online: this is read by another
+           minor, and every extra field is one more thing that cannot
+           be taken back. */
+        select: { id: true, alias: true, descripcion: true },
+      }),
+      this.prisma.duelo.findMany({
+        where: {
+          estado: 'terminado',
+          terminadoEn: { not: null },
+          OR: [
+            { retadorId: userId, rivalId: otroId },
+            { retadorId: otroId, rivalId: userId },
+          ],
+        },
+        select: { terminadoEn: true, ganadorId: true },
+        orderBy: { terminadoEn: 'desc' },
+        take: MAXIMO_DUELOS_PARA_RACHA,
+      }),
+    ]);
+
+    if (!otro) return fallo('NO_ENCONTRADO', 'Perfil no disponible.');
+
+    const fechas = duelos
+      .map((d) => d.terminadoEn)
+      .filter((d): d is Date => d !== null);
+
+    return {
+      ok: true as const,
+      data: {
+        id: otro.id,
+        alias: otro.alias,
+        descripcion: otro.descripcion,
+        amigosDesde: amistad.resueltaEn ?? amistad.creadoEn,
+        racha: rachaJuntos(fechas),
+        /* Wins and losses between the two, which is the other thing
+           anyone wants to know. Ties are neither. */
+        ganados: duelos.filter((d) => d.ganadorId === userId).length,
+        perdidos: duelos.filter((d) => d.ganadorId === otroId).length,
+      },
+    };
   }
 }

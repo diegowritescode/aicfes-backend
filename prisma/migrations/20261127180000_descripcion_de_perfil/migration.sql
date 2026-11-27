@@ -1,0 +1,13 @@
+-- A line the learner writes about themselves, shown on their profile.
+--
+-- VarChar(120) rather than unbounded text: this is free text written
+-- by minors and read by other minors, so its length is part of the
+-- moderation surface. The limit is enforced by the database as well
+-- as by the request schema, because a bug in one should not be the
+-- only thing standing between the product and a bio full of contact
+-- details.
+--
+-- Nullable with no default: not having written one is a real state,
+-- and an empty string would make "never set" and "cleared it"
+-- indistinguishable.
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "descripcion" VARCHAR(120);
