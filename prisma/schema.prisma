@@ -252,6 +252,12 @@ model Answer {
 
   @@index([sessionId])
   @@index([itemId])
+  /// The weekly report groups answers by topic inside a seven-day
+  /// window, which without this is a sequential scan of every answer
+  /// ever recorded — fine at thirteen rows, and the slowest query in
+  /// the service after a year of use. Verified with EXPLAIN: the plan
+  /// went from `Seq Scan on Answer` to an index scan.
+  @@index([createdAt])
 }
 
 /// What a learner keeps getting wrong, and at what grain.

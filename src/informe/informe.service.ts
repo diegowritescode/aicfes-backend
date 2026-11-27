@@ -4,12 +4,15 @@ import { PrismaService } from '../persistence/prisma.service';
 import { OpenaiService } from '../items/services/openai.service';
 import { DebilidadesService } from '../calidad/debilidades.service';
 import { DashboardService } from '../dashboard/dashboard.service';
+import { SemanaRealService } from '../calidad/semana-real.service';
 import { inicioDeSemana, rotuloDeSemana } from './model/semana';
 import {
+  aplanarSemana,
   aplanarTemas,
   hayMateriaParaInforme,
   type PayloadDelInforme,
 } from './model/payload';
+import { leerPlanGuardado, seguimientoDelPlan } from './model/seguimiento';
 import { planConTemasReales } from './model/validar-plan';
 import {
   ESQUEMA_JSON,
@@ -42,7 +45,7 @@ import {
 /* Bumped when the prompt changes in a way that makes old reports read
    differently. Stored per row, so «why does mine look different from
    his» has an answer. */
-const PROMPT_VERSION = 'v1';
+const PROMPT_VERSION = 'v2';
 
 /* Enough to say something, few enough to act on. The plan is capped
    at three in the prompt for the same reason. */
@@ -71,6 +74,7 @@ export class InformeService {
     private readonly openai: OpenaiService,
     private readonly debilidades: DebilidadesService,
     private readonly dashboard: DashboardService,
+    private readonly semanaReal: SemanaRealService,
     private readonly config: ConfigService,
   ) {}
 
@@ -120,10 +124,19 @@ export class InformeService {
     userId: string,
     semanaInicio: Date,
   ): Promise<PayloadDelInforme | null> {
-    const [temas, avanzado, panel] = await Promise.all([
+    /* The window is the seven days the report is about, not «the last
+       seven days from now»: the report for a given week has to read
+       the same on Tuesday as on Friday, and a rolling window would
+       make a stored report disagree with its own `datos`. */
+    const finDeSemana = new Date(semanaInicio);
+    finDeSemana.setUTCDate(finDeSemana.getUTCDate() + 7);
+
+    const [temas, avanzado, panel, semana, anterior] = await Promise.all([
       this.debilidades.temasDebiles(userId, TEMAS_EN_EL_INFORME),
       this.dashboard.getAdvancedDashboard(userId),
       this.dashboard.getDashboard(userId),
+      this.semanaReal.resumen(userId, semanaInicio, finDeSemana),
+      this.informeAnterior(userId, semanaInicio),
     ]);
 
     if (!hayMateriaParaInforme(temas)) return null;
@@ -143,8 +156,32 @@ export class InformeService {
       segundosPorPregunta: avanzado.avgTimePerQuestionSeconds,
       segundosDelExamenReal: SEGUNDOS_EXAMEN_REAL,
       temasDebiles: aplanarTemas(temas),
+      semana7dias: aplanarSemana(semana),
+      /* Last week's plan, scored against this week's answers. Empty
+         on a first report, which the prompt is told to read as «no
+         hay con qué comparar» rather than as a failure to comply. */
+      planAnterior: seguimientoDelPlan(leerPlanGuardado(anterior?.plan), semana),
       semanaVacia: avanzado.sessionsAnalyzed === 0,
     };
+  }
+
+  /**
+   * The report immediately before this one, if there is one.
+   *
+   * Ordered by week rather than by `generadoEn` so a backfilled row
+   * cannot pass itself off as the most recent. Only the week before
+   * is of interest: comparing against a report from two months ago
+   * would let the model say «cumpliste» about a plan the learner has
+   * long forgotten.
+   */
+  private async informeAnterior(userId: string, semanaInicio: Date) {
+    const semanaPrevia = new Date(semanaInicio);
+    semanaPrevia.setUTCDate(semanaPrevia.getUTCDate() - 7);
+
+    return this.prisma.informeSemanal.findUnique({
+      where: { userId_semanaInicio: { userId, semanaInicio: semanaPrevia } },
+      select: { plan: true },
+    });
   }
 
   private async generar(
@@ -264,9 +301,25 @@ REGLAS QUE NO PUEDES ROMPER:
 3. Máximo 3 acciones en el plan. Un plan de seis cosas no lo empieza
    nadie.
 4. Máximo 3 fortalezas y 3 debilidades.
-5. "temasDebiles" es lo que el estudiante arrastra, no lo de esta
-   semana. No digas "esta semana fallaste en X" sobre un tema débil.
-   Di "sigues fallando en X" o "X te viene costando".
+5. Hay DOS clases de evidencia y no se mezclan:
+
+   - "semana7dias" es lo que pasó en estos siete días. De ahí SÍ
+     puedes hablar en pasado: "esta semana te fue bien en X",
+     "bajaste en Y".
+   - "temasDebiles" es lo que arrastra desde antes, sin filtro de
+     fecha. De ahí NO puedes hablar en pasado de la semana. Di
+     "sigues fallando en X" o "X te viene costando".
+
+   Si "semana7dias" es null, no hubo práctica medible en la semana:
+   no digas nada en pasado sobre ella.
+
+6. "planAnterior" es el plan de la semana pasada y cómo le fue. Si
+   está vacío, es su primer informe: no hay con qué comparar y no se
+   lo menciones. Si una acción trae "sinTocar": true, no la practicó;
+   dilo sin regañar, una vez. Si trae un "aciertoPorcentaje", úsalo
+   para decirle si le sirvió. Si "aciertoPorcentaje" es null pero
+   "sinTocar" es false, sí practicó pero fue muy poco para sacar un
+   porcentaje: di que lo tocó, sin cifra.
 
 CÓMO HABLAS:
 
@@ -286,6 +339,15 @@ SOBRE EL RITMO:
 alcanzar el tiempo. Si va más lento, menciónalo una vez; si va más
 rápido pero falla, eso también importa: contestar rápido y mal es un
 problema distinto a no alcanzar.
+
+"semana7dias.lentos" son los temas donde se demora mucho más que su
+propio promedio. Es dato aparte del acierto: puede acertar y aun así
+irle a costar el tiempo en el examen. Si un tema aparece en "lentos"
+y además en "flojos", eso es lo primero que hay que decirle.
+
+Las fortalezas buenas salen de "semana7dias.fuertes", que son temas
+concretos. "Vas bien en Matemáticas" dice menos que "te salieron bien
+las fracciones": lo segundo le dice qué ya no tiene que estudiar.
 
 SOBRE LOS TIPOS DE ERROR:
 

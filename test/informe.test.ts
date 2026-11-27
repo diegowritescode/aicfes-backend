@@ -62,6 +62,9 @@ const RESPUESTA_DEL_MODELO = {
 
 interface Opciones {
   readonly guardado?: unknown;
+  readonly anterior?: unknown;
+  readonly semana?: unknown;
+  readonly rangoPedido?: (args: unknown[]) => void;
   readonly temas?: unknown[];
   readonly respuesta?: unknown;
   readonly fallaElModelo?: boolean;
@@ -75,7 +78,15 @@ function servicio(opciones: Opciones = {}) {
   const prisma = {
     user: { findUnique: async () => ({ timezone: 'America/Bogota' }) },
     informeSemanal: {
-      findUnique: async () => opciones.guardado ?? null,
+      /* The service reads two rows by the same compound key: this
+         week's report and last week's, for the plan follow-up. They
+         are told apart by the week asked for. */
+      findUnique: async ({ where }: { where: { userId_semanaInicio: { semanaInicio: Date } } }) => {
+        const pedida = where.userId_semanaInicio.semanaInicio.getTime();
+        const estaSemana = new Date('2026-11-23T00:00:00Z').getTime();
+        if (pedida < estaSemana) return opciones.anterior ?? null;
+        return opciones.guardado ?? null;
+      },
       create: async ({ data }: { data: unknown }) => {
         creadas.push(data);
         opciones.creado?.(data);
@@ -102,6 +113,12 @@ function servicio(opciones: Opciones = {}) {
     getDashboard: async () => PANEL,
   };
   const config = { get: () => undefined };
+  const semanaReal = {
+    resumen: async (...args: unknown[]) => {
+      opciones.rangoPedido?.(args);
+      return opciones.semana ?? null;
+    },
+  };
 
   return {
     servicio: new InformeService(
@@ -109,6 +126,7 @@ function servicio(opciones: Opciones = {}) {
       openai as never,
       debilidades as never,
       dashboard as never,
+      semanaReal as never,
       config as never,
     ),
     creadas,
@@ -291,4 +309,149 @@ test('strict exige que todo campo esté en required', () => {
   };
 
   revisar(ESQUEMA_JSON as unknown as Record<string, unknown>, 'raiz');
+});
+
+/**
+ * The window and the previous plan, which is what lets the report use
+ * a past tense at all.
+ */
+
+const SEMANA = {
+  desde: new Date('2026-11-23T00:00:00Z'),
+  hasta: new Date('2026-11-30T00:00:00Z'),
+  respondidas: 12,
+  acertadas: 7,
+  aciertoPorcentaje: 58,
+  segundosMediana: 40,
+  fuertes: [
+    {
+      area: 'MAT',
+      tema: 'fracciones',
+      respondidas: 5,
+      acertadas: 5,
+      aciertoPorcentaje: 100,
+      segundosMediana: 35,
+    },
+  ],
+  flojos: [
+    {
+      area: 'MAT',
+      tema: 'angulos',
+      respondidas: 7,
+      acertadas: 2,
+      aciertoPorcentaje: 29,
+      segundosMediana: 80,
+    },
+  ],
+  lentos: [
+    {
+      area: 'MAT',
+      tema: 'angulos',
+      respondidas: 7,
+      acertadas: 2,
+      aciertoPorcentaje: 29,
+      segundosMediana: 80,
+    },
+  ],
+};
+
+test('la semana de siete días llega al modelo', async () => {
+  /* Without it the report can only speak in the present tense about a
+     profile with no notion of a week, which is what ADR 35 recorded
+     as the limit this closes. */
+  const { servicio: s, creadas } = servicio({ semana: SEMANA });
+
+  await s.informeDeEstaSemana('u1');
+
+  const datos = (creadas[0] as { datos: Record<string, unknown> }).datos;
+  const semana = datos.semana7dias as Record<string, unknown>;
+
+  assert.ok(semana, 'el payload tiene que llevar la semana');
+  assert.equal(semana.respondidas, 12);
+  assert.equal((semana.fuertes as unknown[]).length, 1);
+});
+
+test('las fortalezas de la semana son temas, no áreas', () => {
+  /* The asymmetry that `temasDebiles` could not fix: it only returns
+     what goes badly, so a strength could only ever be «vas bien en
+     Matemáticas». A topic tells the learner what they can stop
+     studying. */
+  const fuerte = SEMANA.fuertes[0]!;
+
+  assert.equal(fuerte.tema, 'fracciones');
+  assert.equal(fuerte.aciertoPorcentaje, 100);
+});
+
+test('sin práctica en la semana, el payload lo dice con null', async () => {
+  /* Null rather than a zeroed object: an accuracy of 0% over no
+     answers reads as «falló todo», which is a different and false
+     statement. */
+  const { servicio: s, creadas } = servicio({ semana: null });
+
+  await s.informeDeEstaSemana('u1');
+
+  const datos = (creadas[0] as { datos: Record<string, unknown> }).datos;
+  assert.equal(datos.semana7dias, null);
+});
+
+test('el plan de la semana pasada se lee y se califica', async () => {
+  /* The rows were already stored and nobody read them back, so every
+     Monday started from zero and the plan was never followed up. */
+  const { servicio: s, creadas } = servicio({
+    semana: SEMANA,
+    anterior: {
+      plan: [
+        { area: 'MAT', tema: 'angulos', titulo: 'Repasa ángulos', detalle: 'd' },
+        { area: 'LC', tema: 'inferencia', titulo: 'Lee inferencia', detalle: 'd' },
+      ],
+    },
+  });
+
+  await s.informeDeEstaSemana('u1');
+
+  const datos = (creadas[0] as { datos: Record<string, unknown> }).datos;
+  const seguimiento = datos.planAnterior as Array<Record<string, unknown>>;
+
+  assert.equal(seguimiento.length, 2);
+
+  const angulos = seguimiento.find((a) => a.tema === 'angulos')!;
+  assert.equal(angulos.sinTocar, false);
+  assert.equal(angulos.aciertoPorcentaje, 29);
+
+  /* Not practised at all: the report says so rather than dropping it. */
+  const inferencia = seguimiento.find((a) => a.tema === 'inferencia')!;
+  assert.equal(inferencia.sinTocar, true);
+});
+
+test('en el primer informe no hay plan anterior que calificar', async () => {
+  /* Empty, which the prompt reads as «no hay con qué comparar» rather
+     than as a failure to comply. */
+  const { servicio: s, creadas } = servicio({ semana: SEMANA });
+
+  await s.informeDeEstaSemana('u1');
+
+  const datos = (creadas[0] as { datos: Record<string, unknown> }).datos;
+  assert.deepEqual(datos.planAnterior, []);
+});
+
+test('la ventana es la semana del informe, no los últimos siete días', async () => {
+  /* A stored report has to read the same on Friday as on Tuesday. A
+     rolling window would make it disagree with its own `datos`. */
+  let rango: unknown[] = [];
+  const { servicio: s } = servicio({
+    semana: SEMANA,
+    rangoPedido: (args: unknown[]) => (rango = args),
+  });
+
+  await s.informeDeEstaSemana('u1');
+
+  const desde = rango[1] as Date;
+  const hasta = rango[2] as Date;
+
+  assert.ok(desde instanceof Date, 'tiene que recibir un desde');
+  assert.equal(
+    hasta.getTime() - desde.getTime(),
+    7 * 24 * 60 * 60 * 1000,
+    'la ventana tiene que ser de exactamente siete días',
+  );
 });

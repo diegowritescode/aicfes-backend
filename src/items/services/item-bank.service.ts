@@ -127,23 +127,87 @@ export class ItemBankService {
   /**
    * Draws verified items from the bank, least recently served first, so
    * a learner meets the whole bank rather than the same few items.
+   *
+   * `tema` narrows to one topic, and it is what makes a weekly plan
+   * actionable. Without it the bank answered «area + difficulty» and
+   * nothing more, so a learner told to practise `angulos` got mixed
+   * Matemáticas: the topic travelled all the way from the plan to the
+   * request and died here, silently, which is the worst place for it
+   * to die because every layer above looked correct.
+   *
+   * The filter is a `tags` containment check, matching how
+   * `DebilidadesService` reads the same column, so the topic a
+   * weakness was recorded under is the topic that draws it back.
+   *
+   * It degrades instead of failing. A topic with too few verified
+   * items would otherwise return a short list and the caller would
+   * generate the rest — correct but slow and paid for. So a draw that
+   * comes up short of `minimoPorTema` falls back to the area, because
+   * practising the right area now beats practising the right topic in
+   * forty seconds.
    */
   async draw(params: {
     area: string;
     dificultad?: string;
+    tema?: string;
     limit: number;
     excludeIds?: string[];
   }): Promise<Array<Record<string, unknown>>> {
-    const items = await this.prisma.generatedItem.findMany({
-      where: {
-        verified: true,
-        area: params.area as never,
-        ...(params.dificultad ? { dificultad: params.dificultad as never } : {}),
-        ...(params.excludeIds?.length ? { id: { notIn: params.excludeIds } } : {}),
-      },
-      orderBy: [{ lastServedAt: { sort: 'asc', nulls: 'first' } }, { timesServed: 'asc' }],
-      take: params.limit,
-    });
+    const base = {
+      verified: true,
+      area: params.area as never,
+      ...(params.dificultad ? { dificultad: params.dificultad as never } : {}),
+      ...(params.excludeIds?.length ? { id: { notIn: params.excludeIds } } : {}),
+    };
+
+    const orden = [
+      { lastServedAt: { sort: 'asc', nulls: 'first' } },
+      { timesServed: 'asc' },
+    ] as never;
+
+    let items: Array<{ id: string }> = [];
+
+    if (params.tema) {
+      /* `array_contains` on a Json column, which is how the topic was
+         written: `tags` is a JSON array of strings. Normalised to the
+         stored spelling first — topics live hyphenated, and callers
+         hand them over as prose. */
+      const tema = params.tema.trim().toLowerCase().replace(/\s+/g, '-');
+
+      items = (await this.prisma.generatedItem.findMany({
+        where: { ...base, tags: { array_contains: [tema] } },
+        orderBy: orden,
+        take: params.limit,
+      })) as never;
+
+      if (items.length < params.limit) {
+        this.log.debug(
+          `El banco tiene ${items.length} de ${params.limit} en ${tema}; completando por área`,
+        );
+        /* Topping up rather than discarding: the topic-matched items
+           are the best ones available and throwing them away to
+           re-query the area would serve worse questions. */
+        const faltan = params.limit - items.length;
+        const yaTomados = items.map((i) => i.id);
+        const relleno = await this.prisma.generatedItem.findMany({
+          where: {
+            ...base,
+            id: {
+              notIn: [...(params.excludeIds ?? []), ...yaTomados],
+            },
+          },
+          orderBy: orden,
+          take: faltan,
+        });
+        items = [...items, ...(relleno as never)];
+      }
+    } else {
+      items = (await this.prisma.generatedItem.findMany({
+        where: base,
+        orderBy: orden,
+        take: params.limit,
+      })) as never;
+    }
 
     if (items.length > 0) {
       await this.prisma.generatedItem.updateMany({

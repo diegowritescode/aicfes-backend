@@ -5,6 +5,7 @@ import { CuotaService } from './cuota.service';
 import { DebilidadesService } from './debilidades.service';
 import { ErrorDelDiaService } from './error-del-dia.service';
 import { RepasoService } from './repaso.service';
+import { SemanaRealService } from './semana-real.service';
 import { PersistenceModule } from '../persistence/persistence.module';
 
 /**
@@ -14,7 +15,7 @@ import { PersistenceModule } from '../persistence/persistence.module';
  */
 @Module({
   imports: [PersistenceModule],
-  providers: [CalidadService, CostosService, CuotaService, DebilidadesService, ErrorDelDiaService, RepasoService],
-  exports: [CalidadService, CostosService, CuotaService, DebilidadesService, ErrorDelDiaService, RepasoService],
+  providers: [CalidadService, CostosService, CuotaService, DebilidadesService, ErrorDelDiaService, RepasoService, SemanaRealService],
+  exports: [CalidadService, CostosService, CuotaService, DebilidadesService, ErrorDelDiaService, RepasoService, SemanaRealService],
 })
 export class CalidadModule {}

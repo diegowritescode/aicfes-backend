@@ -4,7 +4,9 @@ Date: 2026-11-27
 
 ## Status
 
-Accepted
+Accepted. Amended by ADR 36, which closes the limits recorded below:
+the seven-day window, the per-topic strengths, the week-to-week
+follow-up and the unused per-answer timing.
 
 ## Context
 
@@ -90,3 +92,8 @@ a recency decay, not a seven-day window. The prompt says so, and the
 report says "sigues fallando en X" rather than "esta semana fallaste
 en X". A genuinely weekly weakness profile would need a date filter
 that model does not have.
+
+**Closed by ADR 36.** `SemanaRealService` adds that date filter by
+joining `Answer` to `GeneratedItem`, which also surfaced per-topic
+strengths and the per-answer timing that `Answer.tiempoMs` had been
+storing unread.

@@ -7,6 +7,7 @@ import { DashboardService } from '../dashboard/dashboard.service';
 import { Area, Dificultad } from '@prisma/client';
 import { MODOS, MODOS_RETIRADOS } from './modos';
 import { DebilidadesService } from '../calidad/debilidades.service';
+import { temaLegible } from '../calidad/semana-real.service';
 import { ItemBankService } from '../items/services/item-bank.service';
 import { repartirFuentes } from './fuente-de-preguntas';
 
@@ -96,6 +97,12 @@ export class TimeTrialService {
       delBanco = await this.banco.draw({
         area: section.area,
         dificultad: section.dificultad,
+        /* The topic reaches the bank, not only the generator. It was
+           being computed by `temaDebil`, handed to this function, and
+           used for generation alone — so the bank, which answers
+           first and most of the time, served the whole area and the
+           weakness profile had no effect on what the learner saw. */
+        tema: section.tema,
         limit: section.n,
         excludeIds: [...(section.excluir ?? [])],
       });
@@ -207,6 +214,8 @@ export class TimeTrialService {
     custom?: {
       area: string;
       dificultad: string;
+      /** A specific topic, as the weekly plan's actions carry. */
+      tema?: string;
       timeLimitSeconds: number;
       questions: number;
     };
@@ -217,6 +226,9 @@ export class TimeTrialService {
     let mix: Array<{ area: string; dificultad: string; n: number }> | null = null;
     let area: string | null = null;
     let dificultad: string | null = null;
+    /* A topic the caller asked for, as opposed to the one the
+       weakness profile would pick. */
+    let temaPedido: string | undefined;
     let timeLimitSeconds: number;
     let questions: number;
 
@@ -236,6 +248,7 @@ export class TimeTrialService {
       questions = params.custom.questions;
       area = params.custom.area;
       dificultad = params.custom.dificultad;
+      temaPedido = params.custom.tema;
     } else {
       return { ok: false, error: { code: 'INVALID_REQUEST', message: 'modeId or custom is required.' } };
     }
@@ -277,7 +290,11 @@ export class TimeTrialService {
         area: objetivo,
         dificultad: nivel,
         n: questions,
-        tema: await this.temaDebil(params.userId, objetivo as Area),
+        /* An explicitly requested topic wins over the computed weak
+           one. The learner tapped «practicar ángulos» in their plan;
+           silently drilling them on whatever the profile ranks first
+           instead would make the plan a suggestion the app ignores. */
+        tema: temaPedido ?? (await this.temaDebil(params.userId, objetivo as Area)),
         userId: params.userId,
       });
       if (result.items.length > 0) {
@@ -327,7 +344,12 @@ export class TimeTrialService {
   private async temaDebil(userId: string, area: Area): Promise<string | undefined> {
     try {
       const temas = await this.debilidades.temasDebiles(userId, 1, area);
-      return temas[0]?.tema.replace(/-/g, ' ');
+      /* `temaLegible` rather than an inline `.replace()`: the stored
+         form is hyphenated and the generator wants prose, and having
+         that conversion in one place is what stops the next caller
+         from getting it wrong. The bank normalises back to the stored
+         spelling itself. */
+      return temas[0] ? temaLegible(temas[0].tema) : undefined;
     } catch {
       return undefined;
     }
