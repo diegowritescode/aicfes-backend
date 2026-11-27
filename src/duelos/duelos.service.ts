@@ -196,7 +196,23 @@ export class DuelosService {
         tutorAutorizoEn: { not: null },
         id: { notIn: [...invisibles] },
       },
-      select: { id: true, alias: true },
+      /* The description travels with the search result, so somebody
+         about to send a request can tell whether this is the person
+         they meant. That question — «is this the Sofía I know?» — is
+         the whole reason a search result needs anything beyond a
+         name.
+
+         What does NOT travel: the streak, wins and losses. Those stay
+         behind an accepted friendship. Alias and description are what
+         a learner writes to be found by; a record of how they play is
+         not, and serving it to any account that can type an alias
+         would make this search a directory of minors' results.
+
+         The three filters above are what make even this safe: the
+         learner has to have made their alias searchable, a guardian
+         has to have authorised the account, and blocks hide people in
+         both directions. */
+      select: { id: true, alias: true, descripcion: true },
       orderBy: { alias: 'asc' },
       take: RESULTADOS_DE_BUSQUEDA,
     });
