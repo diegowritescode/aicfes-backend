@@ -18,6 +18,7 @@ import { PersistenceService } from '../persistence/persistence.service';
 import { ItemBankService } from './services/item-bank.service';
 import { nanoid } from 'nanoid';
 import { DashboardService } from '../dashboard/dashboard.service';
+import { AREAS, type Area } from '../dashboard/utils/dashboard-math';
 
 /**
  * Controlador de generación de ítems ICFES
@@ -689,10 +690,32 @@ export class ItemsController {
     },
   })
   async listItems(@Query('area') area?: string, @Query('limit') limitStr?: string) {
-    const limit = Math.min(parseInt(limitStr || '100'), 500);
+    /* A limit that is not a number must not become one. `parseInt('abc')`
+       is NaN, `Math.min(NaN, 500)` is NaN, and Prisma's `take: NaN` is an
+       error the caller reads as the server breaking. */
+    const pedido = parseInt(limitStr || '100', 10);
+    const limit = Number.isFinite(pedido) && pedido > 0 ? Math.min(pedido, 500) : 100;
 
     if (area) {
-      const items = await this.persistence.getGeneratedItemsByArea(area as any, limit);
+      /* The area is checked here rather than cast past the compiler.
+         `area as any` handed Prisma whatever arrived in the query
+         string, and an enum column rejects an unknown value with an
+         error Nest turns into a 500 — so `?area=matematicas`, a plain
+         mistake in the request, reported itself as the server being
+         broken. A 400 says who has to fix it. */
+      if (!(AREAS as readonly string[]).includes(area)) {
+        throw new HttpException(
+          {
+            error: {
+              code: 'AREA_INVALIDA',
+              message: `Área desconocida. Use una de: ${AREAS.join(', ')}.`,
+            },
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const items = await this.persistence.getGeneratedItemsByArea(area as Area, limit);
       return {
         ok: true,
         items,
