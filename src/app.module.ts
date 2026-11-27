@@ -11,6 +11,7 @@ import { AuthModule } from './auth/auth.module';
 import { TimeTrialModule } from './time-trial/time-trial.module';
 import { DuelosModule } from './duelos/duelos.module';
 import { TutoriaModule } from './tutoria/tutoria.module';
+import { InformeModule } from './informe/informe.module';
 import { FeedbackModule } from './feedback/feedback.module';
 
 @Module({
@@ -27,6 +28,7 @@ import { FeedbackModule } from './feedback/feedback.module';
     DuelosModule,
     TutoriaModule,
     FeedbackModule,
+    InformeModule,
   ],
 })
 export class AppModule {}

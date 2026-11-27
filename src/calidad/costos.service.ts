@@ -38,7 +38,12 @@ export type Operacion =
   | 'verificar'
   | 'embedding'
   | 'retroalimentacion'
-  | 'tutoria';
+  | 'tutoria'
+  /* The weekly report. Its own value rather than folded into
+     `retroalimentacion`: it is the one call made per learner per week
+     rather than per action, so it is the one whose cost has to be
+     readable on its own before deciding whether it can stay. */
+  | 'informe';
 
 @Injectable()
 export class CostosService {

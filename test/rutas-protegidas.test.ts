@@ -78,6 +78,10 @@ test('la ruta que gasta en el modelo exige sesión y cuota', () => {
     ['src/items/items.controller.ts', "@Post('generate-mixed')"],
     ['src/feedback/feedback.controller.ts', "@Post('generate')"],
     ['src/time-trial/time-trial.controller.ts', "@Post('start')"],
+    /* A GET that can write: the weekly report is generated the first
+       time somebody asks for it. The verb hides the spend, so the
+       guard matters more here than on a POST. */
+    ['src/informe/informe.controller.ts', '@Get()'],
   ] as const) {
     const contexto = decoradoresDe(leer(archivo), ruta);
     assert.match(
