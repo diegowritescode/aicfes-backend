@@ -129,6 +129,19 @@ model User {
   /// for the same person is a source of bugs and of mismatched
   /// moderation.
   descripcion     String?          @db.VarChar(120)
+  /// Whether this learner's progress — level, streak, achievements and
+  /// per-subject accuracy — travels to someone who is NOT their friend
+  /// and merely found them by alias.
+  ///
+  /// Off by default, and deliberately separate from `aliasBuscable`.
+  /// That flag means "I want to be findable"; it has never meant "I
+  /// want strangers to see how I am doing in mathematics". Reusing it
+  /// would retroactively change what every learner who already set an
+  /// alias agreed to, which is not a thing a migration may do.
+  ///
+  /// It does not gate what friends see: an accepted friendship is its
+  /// own consent, and `perfilPublico` checks that first.
+  progresoPublico Boolean          @default(false)
   /// Whether this account may read and act on the report queue.
   ///
   /// Granted once through `POST /moderacion/otorgar`, which is guarded
