@@ -3,6 +3,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SesionRequeridaGuard } from '../common/guards/sesion-requerida.guard';
 import { DuelosService } from './duelos.service';
 import { AmigosService } from './amigos.service';
+import { PerfilPublicoService } from './perfil-publico.service';
 import {
   buscableSchema,
   buscarSchema,
@@ -10,6 +11,7 @@ import {
   entregarSchema,
   ponerAliasSchema,
   ponerDescripcionSchema,
+  progresoPublicoSchema,
   retarSchema,
 } from './dto/duelos.schema';
 
@@ -32,6 +34,7 @@ export class DuelosController {
   constructor(
     private readonly duelos: DuelosService,
     private readonly amigos: AmigosService,
+    private readonly perfilPublico: PerfilPublicoService,
   ) {}
 
   /** The token is the only trustworthy source of identity. */
@@ -74,6 +77,42 @@ export class DuelosController {
     const parsed = buscableSchema.safeParse(body);
     if (!parsed.success) return this.invalido('Falta el valor.');
     return this.duelos.cambiarBuscable(this.userId(req), parsed.data.buscable);
+  }
+
+  /**
+   * Whether this learner's progress travels to someone who is not
+   * their friend.
+   *
+   * Its own route rather than a second field on `buscable`, because
+   * they are two consents. A learner may want to be findable and
+   * still not want a stranger reading their level — and the day the
+   * two share an endpoint is the day one of them gets flipped by
+   * accident.
+   */
+  @Post('progreso-publico')
+  @ApiOperation({ summary: 'Mostrar o esconder mi progreso en mi perfil público' })
+  async progresoPublico_(@Req() req: any, @Body() body: unknown) {
+    const parsed = progresoPublicoSchema.safeParse(body);
+    if (!parsed.success) return this.invalido('Falta el valor.');
+    return this.duelos.cambiarProgresoPublico(this.userId(req), parsed.data.publico);
+  }
+
+  /**
+   * Somebody else's profile, as this learner is allowed to see it.
+   *
+   * Declared before `:id/preguntas` and the other id routes so that
+   * `perfil/<id>` cannot be swallowed by a wildcard above it — the
+   * same mistake that made `amigos/pedir` resolve as a friend whose
+   * id was the word «pedir».
+   *
+   * Not restricted to friends, unlike `amigos/:id/perfil`, which
+   * stays for the head-to-head screen. Who may see what is decided
+   * inside the service, in one place.
+   */
+  @Get('perfil/:id')
+  @ApiOperation({ summary: 'El perfil de otra persona' })
+  async perfilDeOtro(@Req() req: any, @Param('id') id: string) {
+    return this.perfilPublico.ver(this.userId(req), id);
   }
 
   /**

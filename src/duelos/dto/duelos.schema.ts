@@ -44,6 +44,13 @@ export const buscableSchema = z.object({
   buscable: z.boolean(),
 });
 
+/* Separate from `buscableSchema` because they are separate consents:
+   being findable is not the same as letting a stranger read your
+   level. One schema for both would invite one endpoint for both. */
+export const progresoPublicoSchema = z.object({
+  publico: z.boolean(),
+});
+
 export const denunciarSchema = z.object({
   denunciadoId: z.string().min(1).max(64),
   motivo: z.enum(['alias_ofensivo', 'acoso', 'suplantacion', 'otro']),

@@ -121,17 +121,19 @@ export class DuelosService {
         tutorAutorizoEn: true,
         esModerador: true,
         descripcion: true,
+        progresoPublico: true,
       },
     });
     if (!usuario) return fallo('NO_ENCONTRADO', 'Cuenta no encontrada.');
 
-    const { esModerador, descripcion, ...alias } = usuario;
+    const { esModerador, descripcion, progresoPublico, ...alias } = usuario;
     return {
       ok: true as const,
       data: {
         ...alias,
         esModerador,
         descripcion,
+        progresoPublico,
         visible: esVisibleEnBusqueda(alias),
       },
     };
@@ -145,6 +147,32 @@ export class DuelosService {
       select: { alias: true, aliasBuscable: true, tutorAutorizoEn: true },
     });
     return { ok: true as const, data: { ...usuario, visible: esVisibleEnBusqueda(usuario) } };
+  }
+
+  /**
+   * Turns the public progress on or off.
+   *
+   * Independent of `aliasBuscable`: a learner may want to be found
+   * and still keep their numbers to themselves, and the reverse is
+   * meaningless but harmless. Friends are unaffected either way —
+   * an accepted friendship is its own consent.
+   */
+  async cambiarProgresoPublico(userId: string, publico: boolean) {
+    const usuario = await this.prisma.user.update({
+      where: { id: userId },
+      data: { progresoPublico: publico },
+      select: {
+        alias: true,
+        aliasBuscable: true,
+        tutorAutorizoEn: true,
+        progresoPublico: true,
+      },
+    });
+    const { progresoPublico, ...alias } = usuario;
+    return {
+      ok: true as const,
+      data: { ...alias, progresoPublico, visible: esVisibleEnBusqueda(alias) },
+    };
   }
 
   /**
