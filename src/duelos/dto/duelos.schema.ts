@@ -32,6 +32,32 @@ export const ponerDescripcionSchema = z.object({
   descripcion: z.string().max(120),
 });
 
+/**
+ * The figure a learner picked, and the colour behind it.
+ *
+ * Both optional and both nullable, because they are two independent
+ * choices and clearing either one is a choice too. `null` restores
+ * the derived avatar — initials on a colour from the alias — which is
+ * a real preference and not an absence.
+ *
+ * The slug is bounded and then checked against `AVATARES`, which is
+ * the authority. This bound only stops a long string from reaching
+ * that check. The colour is `int().min(0)` with no upper bound here;
+ * `esColorValido` owns the ceiling, so the palette can grow in one
+ * place instead of two.
+ */
+export const ponerAvatarSchema = z
+  .object({
+    avatar: z.string().max(24).nullable().optional(),
+    color: z.number().int().min(0).nullable().optional(),
+  })
+  /* Rejects `{}`. Without this, a request that names neither field
+     succeeds, changes nothing, and tells the learner their avatar was
+     saved — the same lie as a failed save reporting success. */
+  .refine((v) => v.avatar !== undefined || v.color !== undefined, {
+    message: 'Nada que cambiar.',
+  });
+
 export const buscarSchema = z.object({
   q: z.string().min(2).max(32),
 });

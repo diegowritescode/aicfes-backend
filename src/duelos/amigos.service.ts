@@ -41,8 +41,8 @@ export class AmigosService {
           estado: true,
           creadoEn: true,
           pidioId: true,
-          pidio: { select: { id: true, alias: true } },
-          recibio: { select: { id: true, alias: true } },
+          pidio: { select: { id: true, alias: true, avatar: true, avatarColor: true } },
+          recibio: { select: { id: true, alias: true, avatar: true, avatarColor: true } },
         },
       }),
       this.prisma.bloqueo.findMany({

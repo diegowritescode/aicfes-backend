@@ -96,6 +96,8 @@ export class PerfilPublicoService {
         aliasBuscable: true,
         tutorAutorizoEn: true,
         progresoPublico: true,
+        avatar: true,
+        avatarColor: true,
       },
     });
 
@@ -160,6 +162,14 @@ export class PerfilPublicoService {
         id: otro.id,
         alias: otro.alias,
         descripcion: otro.descripcion,
+        /* The figure they picked. Not gated behind `progresoPublico`:
+           that flag covers how they are doing in mathematics, and an
+           avatar is not progress — it is how they chose to be seen,
+           by anyone who can already read their alias. Hiding it would
+           show a stranger initials while their friends see a fox, and
+           the same person would look like two accounts. */
+        avatar: otro.avatar,
+        avatarColor: otro.avatarColor,
         /* What the screen needs to decide which button to draw, said
            once by the server. The app working this out from a friend
            list it may not have loaded is how you get a «Enviar

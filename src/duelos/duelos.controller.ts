@@ -10,6 +10,7 @@ import {
   denunciarSchema,
   entregarSchema,
   ponerAliasSchema,
+  ponerAvatarSchema,
   ponerDescripcionSchema,
   progresoPublicoSchema,
   retarSchema,
@@ -51,6 +52,18 @@ export class DuelosController {
   @ApiOperation({ summary: 'Mi alias y si aparezco en búsquedas' })
   async perfil(@Req() req: any) {
     return this.duelos.miPerfil(this.userId(req));
+  }
+
+  /* Before `@Get(':id/preguntas')` for the same reason every other
+     literal route here is: a path parameter matches any segment, so a
+     dynamic route declared first swallows `avatar` and the learner's
+     pick reaches a duel handler. */
+  @Post('avatar')
+  @ApiOperation({ summary: 'Escoger mi avatar y su color' })
+  async avatar(@Req() req: any, @Body() body: unknown) {
+    const parsed = ponerAvatarSchema.safeParse(body);
+    if (!parsed.success) return this.invalido('Ese avatar no existe.');
+    return this.duelos.ponerAvatar(this.userId(req), parsed.data);
   }
 
   @Post('descripcion')
