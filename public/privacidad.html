@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Política de privacidad — AICFES</title>
+<!--
+  Self-contained on purpose. `helmet` sets a Content-Security-Policy
+  with `defaultSrc 'self'`, so a stylesheet from a CDN would be
+  blocked and this page would render unstyled at the exact moment a
+  Play reviewer opens it.
+
+  Google requires the privacy policy to live at a public URL that
+  needs no sign-in and stays reachable. It is listed in Play Console
+  and must agree with the Data safety form field by field: a policy
+  that claims less than the form declares is a mismatch, and a
+  mismatch is a rejection.
+-->
+<style>
+  :root{--tinta:#1f2430;--apagado:#5b6472;--linea:#e3e7ee;--fondo:#ffffff;--acento:#4c3fd8}
+  @media (prefers-color-scheme: dark){
+    :root{--tinta:#e8ebf2;--apagado:#a2abba;--linea:#2b3240;--fondo:#14171f}
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--fondo);color:var(--tinta);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding:0 16px}
+  main{max-width:680px;margin:0 auto;padding:40px 0 64px}
+  h1{font-size:1.6rem;line-height:1.3;margin:0 0 4px}
+  h2{font-size:1.1rem;margin:36px 0 8px;padding-top:20px;border-top:1px solid var(--linea)}
+  h2:first-of-type{border-top:0;padding-top:0}
+  p,li{margin:0 0 12px}
+  ul{padding-left:22px}
+  .fecha{color:var(--apagado);font-size:.9rem;margin-bottom:28px}
+  .clave{background:rgba(76,63,216,.08);border-left:3px solid var(--acento);
+    padding:12px 14px;border-radius:0 6px 6px 0;margin:16px 0}
+  a{color:var(--acento)}
+  table{width:100%;border-collapse:collapse;margin:8px 0 16px;font-size:.94rem}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--linea);vertical-align:top}
+  th{color:var(--apagado);font-weight:600}
+  footer{color:var(--apagado);font-size:.88rem;border-top:1px solid var(--linea);padding-top:16px;margin-top:40px}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Política de privacidad de AICFES</h1>
+<p class="fecha">Última actualización: 28 de noviembre de 2026</p>
+
+<p>AICFES es una aplicación para practicar el examen Saber 11 del ICFES.
+Esta política explica qué datos recogemos, para qué los usamos y con
+quién los compartimos. Está escrita para que la entienda un estudiante
+de bachillerato, porque son nuestros usuarios.</p>
+
+<div class="clave">
+  <strong>Lo más importante en tres frases.</strong> No vendemos tus datos
+  y no hay publicidad en la aplicación. Lo que haces en otras apps de tu
+  teléfono <strong>nunca sale de tu teléfono</strong>. Puedes pedir que
+  borremos tu cuenta y todo lo que hay en ella.
+</div>
+
+<h2>Quién es responsable</h2>
+<p>AICFES es un proyecto desarrollado y operado de forma independiente
+en Colombia. Para cualquier asunto de privacidad, incluido el borrado de
+tu cuenta, escribe a
+<a href="mailto:privacidad@aicfes.deviego.xyz">privacidad@aicfes.deviego.xyz</a>.
+Respondemos en un plazo máximo de 30 días.</p>
+
+<h2>Qué datos recogemos</h2>
+
+<table>
+  <tr><th>Dato</th><th>Para qué</th><th>¿Es obligatorio?</th></tr>
+  <tr>
+    <td>Correo electrónico</td>
+    <td>Identificar tu cuenta y poder recuperarla.</td>
+    <td>Sí, para crear cuenta.</td>
+  </tr>
+  <tr>
+    <td>Contraseña</td>
+    <td>Proteger tu cuenta. La guardamos cifrada con un resumen
+    criptográfico (<em>hash</em>) y una sal; nadie, tampoco nosotros,
+    puede leerla.</td>
+    <td>Sí, para crear cuenta.</td>
+  </tr>
+  <tr>
+    <td>Tus respuestas a los ejercicios, el tiempo que tardas y en qué
+    temas fallas</td>
+    <td>Mostrarte tu progreso, calcular tu racha y tu experiencia, y
+    recomendarte qué repasar.</td>
+    <td>Sí, es la función principal.</td>
+  </tr>
+  <tr>
+    <td>Lo que le escribes al tutor de inteligencia artificial</td>
+    <td>Que el tutor pueda responderte sobre el ejercicio.</td>
+    <td>No. Solo si abres el tutor.</td>
+  </tr>
+  <tr>
+    <td>Alias, descripción, figura y color de avatar</td>
+    <td>Que otros estudiantes puedan encontrarte para duelos y amistades.</td>
+    <td>No. La parte social es opcional.</td>
+  </tr>
+  <tr>
+    <td>Zona horaria del dispositivo</td>
+    <td>Que tu racha cambie de día a tu medianoche, no a la nuestra.</td>
+    <td>Sí, se toma del sistema.</td>
+  </tr>
+</table>
+
+<p><strong>No recogemos:</strong> tu nombre real, tu documento de
+identidad, tu dirección, tu número de teléfono, tu ubicación, tus
+contactos, fotos ni archivos de tu dispositivo. La aplicación no pide
+permiso de cámara, de micrófono, de ubicación ni de galería.</p>
+
+<h2>El permiso de «acceso al uso» y el bloqueo de apps</h2>
+
+<p>AICFES tiene una función opcional de autocontrol: tú escoges apps
+que quieres bloquear, y cuando las abres, AICFES te muestra preguntas
+encima antes de dejarte continuar. Para saber en qué momento mostrarte
+las preguntas, la aplicación necesita el permiso de Android llamado
+<strong>«acceso al uso»</strong> (<em>usage access</em>), que le permite
+ver qué aplicación tienes en primer plano.</p>
+
+<div class="clave">
+  <strong>Esa información no sale de tu teléfono.</strong> No la enviamos
+  a ningún servidor, no la guardamos fuera del aparato y nadie más la ve.
+  No sabemos qué apps bloqueaste, ni cuánto tiempo pasas en ellas, ni
+  cuándo las abres. Todo eso lo procesa el teléfono y se queda ahí.
+</div>
+
+<p>Solo miramos cuál es la aplicación que está adelante, no lo que haces
+dentro de ella. Antes de pedirte este permiso, la aplicación te muestra
+una pantalla que explica esto mismo, y puedes decir que no. Puedes
+retirar el permiso cuando quieras desde los Ajustes de Android; la
+función de bloqueo deja de operar y el resto de la aplicación sigue
+funcionando igual.</p>
+
+<h2>Con quién compartimos datos</h2>
+
+<p>No vendemos, alquilamos ni cedemos datos personales. Los compartimos
+únicamente con estos proveedores, y solo lo que cada uno necesita:</p>
+
+<ul>
+  <li><strong>OpenAI</strong> — cuando usas el tutor o pides
+  retroalimentación, enviamos el enunciado del ejercicio, las opciones y
+  lo que tú escribiste. <strong>No enviamos tu correo, tu alias ni el
+  identificador de tu cuenta</strong>, así que el proveedor no puede
+  saber de quién es el mensaje.</li>
+  <li><strong>Resend</strong> — envía los correos del sistema, por
+  ejemplo los avisos a moderación. Recibe la dirección de destino y el
+  texto del correo.</li>
+  <li><strong>Hostinger</strong> — aloja el servidor donde vive la base
+  de datos. El servidor está en Estados Unidos, así que tus datos se
+  transfieren y se procesan fuera de Colombia. Al crear la cuenta
+  autorizas esa transferencia.</li>
+</ul>
+
+<p>También podríamos entregar datos si una autoridad colombiana
+competente lo exige por ley. Si eso llega a pasar y la ley nos lo
+permite, te avisamos.</p>
+
+<h2>La parte social y lo que ven otros estudiantes</h2>
+
+<p>La parte social está apagada hasta que tú la enciendas. Si escoges un
+alias, otros pueden encontrarte y retarte a un duelo. Tu progreso (nivel,
+racha, materias) es un interruptor <strong>aparte y apagado por
+omisión</strong>: ser encontrable no significa que alguien pueda leer
+cómo te va en matemáticas.</p>
+
+<p><strong>Tu correo electrónico nunca se le muestra a otro usuario.</strong>
+Es el único dato que te identifica fuera de la aplicación, y no aparece
+en ninguna pantalla que otra persona pueda ver.</p>
+
+<p>Puedes bloquear a cualquier usuario y denunciar contenido. Las
+denuncias las revisa una persona.</p>
+
+<h2>Menores de edad</h2>
+
+<p>La aplicación está dirigida a estudiantes de 16 años o más. No está
+diseñada para niños menores de 13 años y no la recogemos ni la dirigimos
+a ellos.</p>
+
+<p>Si tienes menos de 18 años, las funciones sociales (alias público,
+duelos, amistades) requieren además la autorización de tu padre, madre o
+acudiente, que se declara dentro de la aplicación. Sin esa autorización
+esas funciones no se activan, aunque el resto de la aplicación funciona
+con normalidad.</p>
+
+<p>Un padre, madre o acudiente puede escribir a
+<a href="mailto:privacidad@aicfes.deviego.xyz">privacidad@aicfes.deviego.xyz</a>
+para consultar o pedir el borrado de los datos de su hijo. Atendemos esas
+solicitudes igual que las del propio usuario.</p>
+
+<h2>Cuánto tiempo guardamos los datos</h2>
+
+<ul>
+  <li><strong>Tu cuenta y tu progreso:</strong> mientras la cuenta exista.</li>
+  <li><strong>Tokens de sesión:</strong> se vencen solos y se borran.</li>
+  <li><strong>Si pides el borrado:</strong> eliminamos la cuenta y todo lo
+  asociado (respuestas, sesiones de estudio, conversaciones con el tutor,
+  duelos, amistades) en un plazo máximo de 30 días. El borrado es
+  definitivo y no se puede deshacer.</li>
+</ul>
+
+<h2>Tus derechos</h2>
+
+<p>De acuerdo con la Ley 1581 de 2012 de Colombia y su decreto
+reglamentario, puedes:</p>
+
+<ul>
+  <li><strong>Conocer</strong> qué datos tuyos tenemos.</li>
+  <li><strong>Actualizar o corregir</strong> lo que esté mal.</li>
+  <li><strong>Suprimir</strong> tus datos y tu cuenta.</li>
+  <li><strong>Revocar</strong> la autorización que nos diste.</li>
+  <li><strong>Presentar queja</strong> ante la Superintendencia de
+  Industria y Comercio si crees que no cumplimos.</li>
+</ul>
+
+<p>Para ejercer cualquiera de estos derechos escribe a
+<a href="mailto:privacidad@aicfes.deviego.xyz">privacidad@aicfes.deviego.xyz</a>.</p>
+
+<h2>Seguridad</h2>
+
+<p>Las conexiones entre la aplicación y el servidor van cifradas con
+HTTPS. Las contraseñas se guardan con un resumen criptográfico y una sal,
+nunca en texto claro. El token de tu sesión se guarda en el almacén
+cifrado que ofrece el sistema operativo del teléfono, no en texto plano.</p>
+
+<p>Ningún sistema es infalible. Si llega a ocurrir una violación de datos
+que te afecte, te lo informaremos y lo reportaremos a la autoridad
+competente dentro de los plazos que exige la ley.</p>
+
+<h2>Cambios en esta política</h2>
+
+<p>Si cambiamos algo importante, actualizamos la fecha de arriba y te lo
+avisamos dentro de la aplicación antes de que el cambio aplique. La
+versión vigente es siempre la que está publicada en esta dirección.</p>
+
+<footer>
+  AICFES · Colombia ·
+  <a href="mailto:privacidad@aicfes.deviego.xyz">privacidad@aicfes.deviego.xyz</a>
+</footer>
+
+</main>
+</body>
+</html>
