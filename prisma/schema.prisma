@@ -129,6 +129,27 @@ model User {
   /// for the same person is a source of bugs and of mismatched
   /// moderation.
   descripcion     String?          @db.VarChar(120)
+  /// Which of the drawn figures the learner picked, as a slug like
+  /// `zorro` or `cohete`. Null means they have not chosen, and the
+  /// avatar falls back to initials on a colour derived from the alias.
+  ///
+  /// A slug and not an index: `3` would silently become a different
+  /// animal the day the catalogue is reordered, and a learner's
+  /// avatar changing by itself is the kind of bug nobody reports and
+  /// everybody notices. The server validates the slug against its own
+  /// list, so a client cannot store `avatar: "<script>"` and have it
+  /// render on somebody else's profile.
+  ///
+  /// Not a photograph, deliberately. These are minors whose profiles
+  /// are visible to strangers who find them by alias; a drawn figure
+  /// gives the same sense of «this profile is mine» with none of the
+  /// upload, storage, EXIF-location and image-moderation surface.
+  avatar          String?          @db.VarChar(24)
+  /// The background behind the figure or the initials, 0-7, as an
+  /// index into the client's fixed palette. Null means the colour is
+  /// derived from the alias, which is what every account did before
+  /// this column existed.
+  avatarColor     Int?
   /// Whether this learner's progress — level, streak, achievements and
   /// per-subject accuracy — travels to someone who is NOT their friend
   /// and merely found them by alias.

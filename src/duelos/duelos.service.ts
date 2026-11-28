@@ -18,6 +18,7 @@ import { CorreoService } from '../common/correo.service';
 import { ConfigService } from '@nestjs/config';
 import { asunto, cuerpo } from './model/correo-denuncia';
 import { DebilidadesService } from '../calidad/debilidades.service';
+import { esAvatarValido, esColorValido } from './model/avatares';
 import { esVisibleEnBusqueda, validarAlias } from './model/alias';
 import {
   decidir,
@@ -122,11 +123,13 @@ export class DuelosService {
         esModerador: true,
         descripcion: true,
         progresoPublico: true,
+        avatar: true,
+        avatarColor: true,
       },
     });
     if (!usuario) return fallo('NO_ENCONTRADO', 'Cuenta no encontrada.');
 
-    const { esModerador, descripcion, progresoPublico, ...alias } = usuario;
+    const { esModerador, descripcion, progresoPublico, avatar, avatarColor, ...alias } = usuario;
     return {
       ok: true as const,
       data: {
@@ -134,6 +137,8 @@ export class DuelosService {
         esModerador,
         descripcion,
         progresoPublico,
+        avatar,
+        avatarColor,
         visible: esVisibleEnBusqueda(alias),
       },
     };
@@ -241,7 +246,7 @@ export class DuelosService {
          learner has to have made their alias searchable, a guardian
          has to have authorised the account, and blocks hide people in
          both directions. */
-      select: { id: true, alias: true, descripcion: true },
+      select: { id: true, alias: true, descripcion: true, avatar: true, avatarColor: true },
       orderBy: { alias: 'asc' },
       take: RESULTADOS_DE_BUSQUEDA,
     });
@@ -289,7 +294,7 @@ export class DuelosService {
   async bloqueados(userId: string) {
     const filas = await this.prisma.bloqueo.findMany({
       where: { bloqueadorId: userId },
-      select: { bloqueado: { select: { id: true, alias: true } }, creadoEn: true },
+      select: { bloqueado: { select: { id: true, alias: true, avatar: true, avatarColor: true } }, creadoEn: true },
       orderBy: { creadoEn: 'desc' },
     });
     return { ok: true as const, data: filas };
@@ -679,8 +684,8 @@ export class DuelosService {
         retadorId: true,
         resultadoRetador: true,
         resultadoRival: true,
-        retador: { select: { id: true, alias: true } },
-        rival: { select: { id: true, alias: true } },
+        retador: { select: { id: true, alias: true, avatar: true, avatarColor: true } },
+        rival: { select: { id: true, alias: true, avatar: true, avatarColor: true } },
       },
       orderBy: { creadoEn: 'desc' },
       take: 30,
@@ -820,6 +825,50 @@ export class DuelosService {
   }
 
   /**
+   * Stores the figure a learner picked.
+   *
+   * Validated against `AVATARES` here and not only at the HTTP edge,
+   * because the column is free text: the list is what decides, and a
+   * slug that is not on it is a rejection and not a default. Falling
+   * back to a figure of our choosing would silently give a learner an
+   * avatar they did not pick, which is the bug they would notice and
+   * never report.
+   *
+   * `null` is a value, not a missing field: it means «go back to my
+   * initials». That is why the update is built from what the caller
+   * actually sent rather than from `??` — `avatar ?? undefined` would
+   * make clearing impossible.
+   */
+  async ponerAvatar(
+    userId: string,
+    entrada: { avatar?: string | null; color?: number | null },
+  ) {
+    const cambio: { avatar?: string | null; avatarColor?: number | null } = {};
+
+    if (entrada.avatar !== undefined) {
+      if (entrada.avatar !== null && !esAvatarValido(entrada.avatar)) {
+        return fallo('AVATAR_INVALIDO', 'Ese avatar no existe.');
+      }
+      cambio.avatar = entrada.avatar;
+    }
+
+    if (entrada.color !== undefined) {
+      if (entrada.color !== null && !esColorValido(entrada.color)) {
+        return fallo('COLOR_INVALIDO', 'Ese color no existe.');
+      }
+      cambio.avatarColor = entrada.color;
+    }
+
+    const usuario = await this.prisma.user.update({
+      where: { id: userId },
+      data: cambio,
+      select: { avatar: true, avatarColor: true },
+    });
+
+    return { ok: true as const, data: usuario };
+  }
+
+  /**
    * Someone else's profile, as a friend may see it.
    *
    * Only between people who are actually friends. An endpoint that
@@ -869,7 +918,7 @@ export class DuelosService {
            that say when they are online: this is read by another
            minor, and every extra field is one more thing that cannot
            be taken back. */
-        select: { id: true, alias: true, descripcion: true },
+        select: { id: true, alias: true, descripcion: true, avatar: true, avatarColor: true },
       }),
       this.prisma.duelo.findMany({
         where: {
